@@ -32,7 +32,8 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     uint256 private _startVestingTime = 0;
     uint256 public _percentToPool = 50;
     address private _receiverLiquid;
-    address private _receiverSale;
+    address private _cryptoSoulReceiverSale;
+    address private _metaExpReceiverSale;
 
     string public constant DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN =
         "PreSale: you dont have balance in token";
@@ -66,18 +67,19 @@ contract PreSale is Pausable, IPreSale, AccessControl {
 
     mapping(address => Vesting) public userVesting;
 
-    constructor(address factory_) {
+    constructor(
+        address factory_,
+        address cryptoSoulReceiverSale_,
+        address metaExpReceiverSale_
+    ) {
         _setupRole(MANAGER_ROLE, msg.sender);
         _receiverLiquid = msg.sender;
-        _receiverSale = msg.sender;
         factory = factory_;
+        _cryptoSoulReceiverSale = cryptoSoulReceiverSale_;
+        _metaExpReceiverSale = metaExpReceiverSale_;
     }
 
-    function startVesting()
-        public
-        whenNotPaused
-        onlyRole(MANAGER_ROLE)
-    {
+    function startVesting() public whenNotPaused onlyRole(MANAGER_ROLE) {
         _startVestingTime = block.timestamp;
     }
 
@@ -115,12 +117,17 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             100
         );
 
-        uint256 totalSendToSaleReceiver = amountInPaymentToken_.sub(
-            totalSendToPool
-        );
+        uint256 totalSendToSaleReceiver = amountInPaymentToken_
+            .sub(totalSendToPool)
+            .div(2);
 
         erc20Payment.transferFrom(
-            _receiverSale,
+            _cryptoSoulReceiverSale,
+            address(this),
+            totalSendToSaleReceiver
+        );
+        erc20Payment.transferFrom(
+            _metaExpReceiverSale,
             address(this),
             totalSendToSaleReceiver
         );

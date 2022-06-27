@@ -70,7 +70,11 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         factory = factory_;
     }
 
-    function startVesting(uint256 amountInPaymentToken_) public whenNotPaused {
+    function startVesting(uint256 amountInPaymentToken_)
+        public
+        whenNotPaused
+        onlyRole(MANAGER_ROLE)
+    {
         startVesting = block.timestamp;
     }
 
@@ -189,5 +193,13 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         }
 
         claimableAmount = claimableAmount - _vesting.claimed;
+    }
+
+    function pause() public onlyRole(MANAGER_ROLE) {
+        _pause();
+    }
+
+    function unpause() public onlyRole(MANAGER_ROLE) {
+        _unpause();
     }
 }

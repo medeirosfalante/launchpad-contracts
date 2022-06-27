@@ -15,4 +15,8 @@ interface IPreSale {
         returns (uint256 claimableAmount);
 
     function take(uint256 amountInPaymentToken_) external;
+
+    function pause() external;
+
+    function unpause() external;
 }

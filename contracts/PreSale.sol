@@ -112,7 +112,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             address(this),
             amountInPaymentToken_
         );
-        uint256 total = amountInPaymentToken_.mul(tokensToPool);
+
+        uint256 price = getTokenPrice(uniswapV2Pair);
+        uint256 totalTokenInDolar = amountInPaymentToken_.div(price);
         erc20Token.approve(address(factory), amountInPaymentToken_);
         uint256 totalSendToPool = amountInPaymentToken_.mul(_percentToPool).div(
             100
@@ -133,9 +135,11 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             totalSendToSaleReceiver
         );
 
+        uint256 totalTokenInDolarForPool = totalSendToPool.div(price);
+
         uniswapV2Router02_.addLiquidityETH{value: totalSendToPool}(
             token,
-            total,
+            totalTokenInDolarForPool,
             0, // slippage is unavoidable
             0, // slippage is unavoidable
             _receiverLiquid,
@@ -145,8 +149,8 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         uint256 finishVesting = block.timestamp.add(DayVesting * 1 days);
         addUserVesting(
             msg.sender,
-            total,
-            total,
+            totalTokenInDolar,
+            totalTokenInDolar,
             _startVestingTime,
             finishVesting
         );
@@ -219,5 +223,18 @@ contract PreSale is Pausable, IPreSale, AccessControl {
 
     function unpause() public onlyRole(MANAGER_ROLE) {
         _unpause();
+    }
+
+    function getTokenPrice(address pairAddress)
+        public
+        view
+        returns (uint256)
+    {
+        // IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
+        // IERC20 token1 = IERC20(pair.token1);
+        // (uint Res0, uint Res1,) = pair.getReserves();
+        // // decimals
+        // uint res0 = Res0*(10**token1.decimals());
+        // return((amount*res0)/Res1); // return amount of token0 needed to buy token1
     }
 }

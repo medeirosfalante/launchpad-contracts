@@ -21,4 +21,6 @@ interface IPreSale {
     function pause() external;
 
     function unpause() external;
+
+    function getTokenPrice(address pairAddress) external view  returns (uint256);
 }

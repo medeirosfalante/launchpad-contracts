@@ -29,7 +29,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     uint256 public totalVested;
     uint256 public totalClaimed;
     uint256 private DayVesting = 30;
-    uint256 private startVesting;
+    uint256 private _startVestingTime = 0;
     uint256 public _percentToPool = 50;
     address private _receiverLiquid;
     address private _receiverSale;
@@ -61,6 +61,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         uint256 claimed;
     }
 
+    event UsersUpdated(address indexed token, uint256 users, uint256 amount);
+    event Claimed(address indexed token, address indexed user, uint256 amount);
+
     mapping(address => Vesting) public userVesting;
 
     constructor(address factory_) {
@@ -70,12 +73,12 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         factory = factory_;
     }
 
-    function startVesting(uint256 amountInPaymentToken_)
+    function startVesting()
         public
         whenNotPaused
         onlyRole(MANAGER_ROLE)
     {
-        startVesting = block.timestamp;
+        _startVestingTime = block.timestamp;
     }
 
     function setPairLiquidPool(address token_, address paymentToken_)
@@ -95,6 +98,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     function take(uint256 amountInPaymentToken_) public whenNotPaused {
         require(paymentToken != address(0), PAYMENT_TOKEN_IS_INVALID);
         IERC20Metadata erc20Payment = IERC20Metadata(paymentToken);
+        IERC20Metadata erc20Token = IERC20Metadata(token);
         require(
             erc20Payment.balanceOf(msg.sender) <= amountInPaymentToken_,
             DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN
@@ -106,7 +110,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             amountInPaymentToken_
         );
         uint256 total;
-        _approve(address(this), address(factory), amountInPaymentToken_);
+        erc20Token.approve(address(factory), amountInPaymentToken_);
         uint256 totalSendToPool = amountInPaymentToken_.mul(_percentToPool).div(
             100
         );
@@ -121,7 +125,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             totalSendToSaleReceiver
         );
 
-        pancakeV2Router.addLiquidityETH{value: totalSendToPool}(
+        uniswapV2Router02_.addLiquidityETH{value: totalSendToPool}(
             token,
             total,
             0, // slippage is unavoidable
@@ -130,8 +134,14 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             block.timestamp
         );
 
-        finishVesting = block.timestamp.add(DayVesting * 1 days);
-        addUserVesting(msg.sender, total, total, startVesting, finishVesting);
+        uint256 finishVesting = block.timestamp.add(DayVesting * 1 days);
+        addUserVesting(
+            msg.sender,
+            total,
+            total,
+            _startVestingTime,
+            finishVesting
+        );
     }
 
     function addUserVesting(
@@ -161,8 +171,8 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             tokens;
         totalClaimed = totalClaimed + tokens;
         IERC20Metadata erc20Token = IERC20Metadata(token);
-        erc20Token.safeTransfer(msg.sender, tokens);
-        emit Claimed(tokenAddress, msg.sender, tokens);
+        erc20Token.transferFrom(msg.sender, address(this), tokens);
+        emit Claimed(token, msg.sender, tokens);
         return true;
     }
 

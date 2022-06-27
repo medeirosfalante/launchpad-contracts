@@ -16,6 +16,8 @@ interface IPreSale {
 
     function take(uint256 amountInPaymentToken_) external;
 
+    function startVesting() external;
+
     function pause() external;
 
     function unpause() external;

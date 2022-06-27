@@ -6,4 +6,13 @@ import "./IUniswapFactory.sol";
 
 interface IPreSale {
     function setPairLiquidPool(address token_, address paymentToken_) external;
+
+    function claim() external returns (bool);
+
+    function getClaimableAmount(address _user)
+        external
+        view
+        returns (uint256 claimableAmount);
+
+    function take(uint256 amountInPaymentToken_) external;
 }

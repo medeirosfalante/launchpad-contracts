@@ -13,6 +13,7 @@ contract('PreSale', async (accounts) => {
     let crplayToken = await CRPLAY.deployed()
     let usdtToken = await USDT.deployed()
     let preSale = await PreSale.deployed()
+
     await preSale.setPairLiquidPool(crplayToken.address, usdtToken.address, {
       from: accountSale,
     })

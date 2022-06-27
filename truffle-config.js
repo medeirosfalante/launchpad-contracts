@@ -13,13 +13,25 @@ module.exports = {
       provider: () =>
         new HDWalletProvider(
           mnemonic,
-          `https://data-seed-prebsc-1-s1.binance.org:8545`,
+          `https://kovan.infura.io/v3/f7b459d7ea4448fca122aff2dfa322f0`,
         ),
-      network_id: 97,
+      network_id: 42,
       confirmations: 2,
       timeoutBlocks: 2000,
       skipDryRun: true,
       networkCheckTimeout: 1000000,
+    },
+    testnet_mubai: {
+      provider: () =>
+        new HDWalletProvider(
+          mnemonic,
+          `https://speedy-nodes-nyc.moralis.io/a068d4499612e52e5bc62566/polygon/mumbai`,
+        ),
+      network_id: 80001,
+      confirmations: 1,
+      timeoutBlocks: 20000,
+      skipDryRun: true,
+      networkCheckTimeout: 10000000,
     },
     bsc: {
       provider: () =>

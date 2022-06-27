@@ -34,6 +34,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     address private _receiverLiquid;
     address private _cryptoSoulReceiverSale;
     address private _metaExpReceiverSale;
+    uint256 private tokensToPool = 4500 * 10**10;
 
     string public constant DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN =
         "PreSale: you dont have balance in token";
@@ -111,7 +112,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             address(this),
             amountInPaymentToken_
         );
-        uint256 total;
+        uint256 total = amountInPaymentToken_.mul(tokensToPool);
         erc20Token.approve(address(factory), amountInPaymentToken_);
         uint256 totalSendToPool = amountInPaymentToken_.mul(_percentToPool).div(
             100

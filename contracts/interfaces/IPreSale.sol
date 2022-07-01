@@ -13,7 +13,14 @@ interface IPreSale {
         uint256 claimed;
     }
 
-    function claim() external returns (bool);
+    struct Price {
+        uint256 price;
+        string tokenName;
+        string tokenSymbol;
+        uint8 tokenDecimals;
+        address tokenContract;
+    }
+
 
     function getClaimableAmount(address _user)
         external

@@ -21,6 +21,29 @@ interface IPreSale {
         address tokenContract;
     }
 
+    struct Sale {
+        uint256 id;
+        uint256 totalLocked;
+        uint256 totalPercentLiquidPool;
+        uint256 totalPercentForward;
+        uint256 startTime;
+        uint256 endTime;
+        bool finished;
+        bool hasVesting;
+        uint256 startVesting;
+        uint256 finishVesting;
+        address tokenPaymentContract;
+        address tokenContract;
+        address pair;
+        uint256 category;
+        address creator;
+        uint256 total;
+        uint256 totalSell;
+        uint256 balance;
+        uint256 price;
+        bool initiated;
+        string urlProperties;
+    }
 
     function getClaimableAmount(address _user)
         external

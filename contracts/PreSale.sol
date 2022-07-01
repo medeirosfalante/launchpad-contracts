@@ -157,34 +157,34 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     }
 
     function addUserVesting(
-        address _user,
-        uint256 _amount,
-        uint256 _startAmount,
+        Order memory _order,
         uint256 _startTime,
         uint256 _endTime
     ) private {
-        require(_user != address(0), VESTING_ZERO_ADDRESS);
-        require(_amount > 0, VESTING_ZERO_AMOUNT);
-        require(_startAmount <= _amount, VESTING_WRONG_TOKEN_VALUES);
-        userVesting[_user] = Vesting(
-            _amount,
-            _startAmount,
+        require(_order.buyer != address(0), VESTING_ZERO_ADDRESS);
+        require(_order.amountInToken > 0, VESTING_ZERO_AMOUNT);
+        // require(_startAmount <= _amount, VESTING_WRONG_TOKEN_VALUES);
+        userVesting[_order.saleID][_order.buyer] = Vesting(
+            _order.amountInToken,
+            _order.amountInToken,
             _startTime,
             _endTime,
             0
         );
     }
 
-    function claim() external whenNotPaused returns (bool) {
-        uint256 tokens = getClaimableAmount(msg.sender);
+    function claim(uint256 saleID) external whenNotPaused returns (bool) {
+        Sale memory sale = _sales[saleID];
+        require(sale.id > 0, SALE_DONT_EXISTS);
+        uint256 tokens = getClaimableAmount(msg.sender, saleID);
         require(tokens > 0, VESTING_NO_CLAIMABLE_TOKENS_AVAILABLE);
-        userVesting[msg.sender].claimed =
-            userVesting[msg.sender].claimed +
+        userVesting[saleID][msg.sender].claimed =
+            userVesting[saleID][msg.sender].claimed +
             tokens;
         totalClaimed = totalClaimed + tokens;
-        IERC20Metadata erc20Token = IERC20Metadata(token);
+        IERC20Metadata erc20Token = IERC20Metadata(sale.tokenContract);
         erc20Token.transferFrom(msg.sender, address(this), tokens);
-        emit Claimed(token, msg.sender, tokens);
+        emit Claimed(sale.tokenContract, msg.sender, tokens);
         return true;
     }
 

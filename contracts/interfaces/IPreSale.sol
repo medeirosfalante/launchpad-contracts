@@ -5,7 +5,13 @@ import "./IUniswapRouter02.sol";
 import "./IUniswapFactory.sol";
 
 interface IPreSale {
-    function setPairLiquidPool(address token_, address paymentToken_) external;
+    struct Vesting {
+        uint256 totalAmount;
+        uint256 startAmount;
+        uint256 startTime;
+        uint256 endTime;
+        uint256 claimed;
+    }
 
     function claim() external returns (bool);
 

@@ -1,4 +1,4 @@
-# 🛒 CRPLAY PRE-SALE
+# 🛒 launchpad platfrom dex
 
 
 using  **openzeppelin 4.4.2**
@@ -6,11 +6,10 @@ using  **ERC20** for Token
 
 
 
-path **/contracts/interfaces/IMarketplace**
+path **/contracts/interfaces/iPresale**
 
 ## Description 
-- token em polygon prod: 0xacDbc93DA6B269530d721c1BAe7c54c796488Ffc
-- pair in uniswap 0xacDbc93DA6B269530d721c1BAe7c54c796488Ffc
+- this platfrom is the dex to IDO projects in web3
 
 ## Installation
 - Call `yarn` to install dependencies.

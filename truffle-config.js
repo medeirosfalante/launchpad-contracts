@@ -6,19 +6,19 @@ module.exports = {
   networks: {
     development: {
       provider: () =>
-        new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
-      network_id: 97,
-      confirmations: 1,
-      timeoutBlocks: 20000,
-      skipDryRun: true,
-      networkCheckTimeout: 10000000,
-      disableConfirmationListener: true
+      new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
+    network_id: 97,
+    confirmations: 1,
+    timeoutBlocks: 2000,
+    skipDryRun: true,
+    networkCheckTimeout: 1000000,
+    disableConfirmationListener: true
     },
     testnet: {
       provider: () =>
         new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
       network_id: 97,
-      confirmations: 2,
+      confirmations: 1,
       timeoutBlocks: 2000,
       skipDryRun: true,
       networkCheckTimeout: 1000000,
@@ -41,7 +41,7 @@ module.exports = {
       provider: () =>
         new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
       network_id: 97,
-      confirmations: 10,
+      confirmations: 1,
       timeoutBlocks: 200,
       skipDryRun: true,
     },
@@ -64,11 +64,11 @@ module.exports = {
   // Configure your compilers
   compilers: {
     solc: {
-      version: '0.8.13', // A version or constraint - Ex. "^0.8.0"
+      version: '0.8.14', // A version or constraint - Ex. "^0.8.0"
       settings: {
         optimizer: {
           enabled: true,
-          runs: 2,
+          runs: 200
         },
         evmVersion: 'byzantium',
       },

@@ -45,7 +45,15 @@ interface IPreSale {
         string urlProperties;
     }
 
-    function getClaimableAmount(address _user)
+    struct Order {
+        address buyer;
+        uint256 price;
+        uint256 buyAt;
+        address tokenContract;
+        address tokenPaymentContract;
+        uint256 saleID;
+        uint256 amountInToken;
+    }
         external
         view
         returns (uint256 claimableAmount);

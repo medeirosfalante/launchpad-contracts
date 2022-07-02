@@ -1,0 +1,27 @@
+let crplayToken = await CRPLAY.deployed()
+let usdtToken = await USDT.deployed()
+let presale = await PreSale.deployed()
+
+
+
+
+
+await presale.createCategory('MetaEXP', 'google.com')
+await presale.createCategory('Enablers', 'google.com')
+
+
+await presale.addSale('https://gateway.pinata.cloud/ipfs/QmepP6HUacEEgqCqFsTFEReq78mQRspFYEsndKeRjo8jwx',crplayToken.address,usdtToken.address,1)
+
+
+
+let total = web3.utils.toWei('1', 'ether')
+let price = web3.utils.toWei('1', 'wei')
+
+let percent = web3.utils.toWei('50', 'wei')
+await crplayToken.approve(presale.address,total)
+
+let finish = 1664675814 
+let inital = 1656727014
+
+
+await presale.start(1,total,price,inital,finish,true,inital,finish,50)

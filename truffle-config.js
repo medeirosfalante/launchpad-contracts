@@ -5,24 +5,35 @@ const mnemonic = fs.readFileSync('.secret').toString().trim()
 module.exports = {
   networks: {
     development: {
-      provider: () =>
-      new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
-    network_id: 97,
-    confirmations: 1,
-    timeoutBlocks: 2000,
-    skipDryRun: true,
-    networkCheckTimeout: 1000000,
-    disableConfirmationListener: true
+      host: '127.0.0.1', // Localhost (default: none)
+      port: 7545, // Standard BSC port (default: none)
+      network_id: '*', // Any network (default: none)
     },
+    // development: {
+    //   provider: () =>
+    //     new HDWalletProvider(
+    //       mnemonic,
+    //       `https://data-seed-prebsc-1-s1.binance.org:8545`,
+    //     ),
+    //   network_id: 97,
+    //   confirmations: 1,
+    //   timeoutBlocks: 2000,
+    //   skipDryRun: true,
+    //   networkCheckTimeout: 1000000,
+    //   disableConfirmationListener: true,
+    // },
     testnet: {
       provider: () =>
-        new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
+        new HDWalletProvider(
+          mnemonic,
+          `https://data-seed-prebsc-1-s1.binance.org:8545`,
+        ),
       network_id: 97,
       confirmations: 1,
       timeoutBlocks: 2000,
       skipDryRun: true,
       networkCheckTimeout: 1000000,
-      disableConfirmationListener: true
+      disableConfirmationListener: true,
     },
     testnet_mubai: {
       provider: () =>
@@ -35,11 +46,14 @@ module.exports = {
       timeoutBlocks: 20000,
       skipDryRun: true,
       networkCheckTimeout: 10000000,
-      disableConfirmationListener: true
+      disableConfirmationListener: true,
     },
     bsc: {
       provider: () =>
-        new HDWalletProvider(mnemonic, `https://data-seed-prebsc-1-s1.binance.org:8545`),
+        new HDWalletProvider(
+          mnemonic,
+          `https://data-seed-prebsc-1-s1.binance.org:8545`,
+        ),
       network_id: 97,
       confirmations: 1,
       timeoutBlocks: 200,
@@ -68,7 +82,7 @@ module.exports = {
       settings: {
         optimizer: {
           enabled: true,
-          runs: 200
+          runs: 200,
         },
         evmVersion: 'byzantium',
       },

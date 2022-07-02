@@ -26,9 +26,6 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     using Counters for Counters.Counter;
     uint256 public totalVested;
     uint256 public totalClaimed;
-    uint256 private DayVesting = 30;
-    uint256 private _startVestingTime = 0;
-    uint256 public _percentToPool = 50;
     address private _receiverLiquid;
     address private _cryptoSoulReceiverSale;
     address private _metaExpReceiverSale;
@@ -45,13 +42,6 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     mapping(uint256 => Order) private _orders;
     mapping(uint256 => Sale) private _sales;
     mapping(uint256 => Category) private _categories;
-
-    struct Category {
-        // Bid Id
-        uint256 id;
-        string name;
-        string icon;
-    }
 
     string public constant DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN =
         "PreSale: you dont have balance in token";
@@ -87,6 +77,8 @@ contract PreSale is Pausable, IPreSale, AccessControl {
 
     event AddSale(Sale sale);
 
+    mapping(bytes32 => mapping(address => bool)) public likedSale;
+
     mapping(uint256 => mapping(address => Vesting)) public userVesting;
 
     constructor(
@@ -118,12 +110,11 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         require(_sales[saleID].creator == msg.sender, DONT_HAVE_ACCESS);
         IERC20Metadata erc20Token = IERC20Metadata(sale.tokenContract);
         require(
-            erc20Token.balanceOf(msg.sender) <= total,
+            erc20Token.balanceOf(msg.sender) > total,
             DONT_WAVE_BALANCE_IN_TOKEN
         );
-        erc20Token.approve(address(this), total);
-
-        erc20Token.transferFrom(address(this), msg.sender, total);
+        uint256 totalPercent = 100;
+        erc20Token.transferFrom(msg.sender, address(this), total);
         _sales[saleID].initiated = true;
         _sales[saleID].total = total;
         _sales[saleID].price = price;
@@ -134,7 +125,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         _sales[saleID].startVesting = startTimeVesting;
         _sales[saleID].finishVesting = finishTimeVesting;
         _sales[saleID].totalPercentLiquidPool = totalPercentLiquidPool;
-        _sales[saleID].totalPercentForward = totalPercentLiquidPool.sub(100);
+        _sales[saleID].totalPercentForward = totalPercent.sub(
+            totalPercentLiquidPool
+        );
     }
 
     function addSale(
@@ -149,8 +142,19 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             paymentToken_
         );
         _totalSales.increment();
+        bytes32 saleId = keccak256(
+            abi.encodePacked(
+                block.timestamp,
+                msg.sender,
+                token_,
+                paymentToken_,
+                category,
+                _totalSales.current()
+            )
+        );
+
         _sales[_totalSales.current()] = Sale({
-            id: _totalSales.current(),
+            id: saleId,
             totalLocked: 0,
             totalPercentLiquidPool: 0,
             totalPercentForward: 0,
@@ -170,7 +174,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             balance: 0,
             price: 0,
             initiated: false,
-            urlProperties: urlProperties
+            urlProperties: urlProperties,
+            highlight: false,
+            liked: 0
         });
         emit AddSale(_sales[_totalSales.current()]);
     }
@@ -207,9 +213,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             _sales[saleID].price
         );
         erc20Token.approve(address(uniswapV2Router), amountInPaymentToken_);
-        uint256 totalSendToPool = amountInPaymentToken_.mul(_percentToPool).div(
-            100
-        );
+        uint256 totalSendToPool = amountInPaymentToken_
+            .mul(sale.totalPercentLiquidPool)
+            .div(100);
 
         uint256 totalSendToSaleReceiver = amountInPaymentToken_
             .sub(totalSendToPool)
@@ -394,6 +400,53 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             categories[currentIndex] = currentItem;
             currentIndex += 1;
         }
+    }
+
+    function getHighlight() public view returns (Sale memory sale) {
+        uint256 totalItemCount = _totalSales.current();
+        for (uint256 i = 0; i < totalItemCount; i++) {
+            if (
+                _sales[i + 1].finished == false &&
+                _sales[i + 1].initiated == true &&
+                _sales[i + 1].highlight == true
+            ) {
+                sale = _sales[i + 1];
+            }
+        }
+    }
+
+    function toggleLike(uint256 saleID)
+        public
+        onlyRole(MANAGER_ROLE)
+        returns (Sale memory)
+    {
+        Sale memory sale = _sales[saleID];
+        require(sale.id > 0, SALE_DONT_EXISTS);
+
+        if (likedSale[sale.id][msg.sender] == false) {
+            likedSale[sale.id][msg.sender] = true;
+            _sales[saleID].liked = _sales[saleID].liked.add(1);
+        } else {
+            likedSale[sale.id][msg.sender] = false;
+        }
+        sale.highlight = true;
+        _sales[saleID] = sale;
+        return sale;
+    }
+
+    function defineHighlight(uint256 saleID)
+        public
+        onlyRole(MANAGER_ROLE)
+        returns (Sale memory)
+    {
+        Sale memory sale = _sales[saleID];
+        require(sale.id > 0, SALE_DONT_EXISTS);
+        uint256 totalItemCount = _totalSales.current();
+        for (uint256 i = 0; i < totalItemCount; i++) {
+            _sales[i + 1].highlight = false;
+        }
+        _sales[saleID].highlight = true;
+        return sale;
     }
 
     function listOpenSales() public view returns (Sale[] memory sales) {

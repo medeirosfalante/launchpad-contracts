@@ -21,8 +21,15 @@ interface IPreSale {
         address tokenContract;
     }
 
-    struct Sale {
+    struct Category {
+        // Bid Id
         uint256 id;
+        string name;
+        string icon;
+    }
+
+    struct Sale {
+        bytes32 id;
         uint256 totalLocked;
         uint256 totalPercentLiquidPool;
         uint256 totalPercentForward;
@@ -43,6 +50,8 @@ interface IPreSale {
         uint256 price;
         bool initiated;
         string urlProperties;
+        bool highlight;
+        uint256 liked;
     }
 
     struct Order {
@@ -96,5 +105,16 @@ interface IPreSale {
 
     function listOpenSales() external view returns (Sale[] memory sales);
 
+    function listCategory()
+        external
+        view
+        returns (Category[] memory categories);
+
     function getSale(uint256 saleID) external view returns (Sale memory);
+
+    function getHighlight() external view returns (Sale memory sale);
+
+    function defineHighlight(uint256 saleID) external returns (Sale memory);
+
+    function toggleLike(uint256 saleID) external returns (Sale memory);
 }

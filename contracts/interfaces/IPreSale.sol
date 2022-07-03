@@ -19,6 +19,7 @@ interface IPreSale {
         address token_;
         address paymentToken_;
         uint256 category;
+        bool createLiquidPool;
     }
 
     struct Category {
@@ -56,6 +57,7 @@ interface IPreSale {
         uint256 minPerUser;
         uint256 maxPerUser;
         address receiverLiquid;
+        bool hasLiquidPool;
     }
 
     struct Order {

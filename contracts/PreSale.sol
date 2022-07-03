@@ -91,8 +91,17 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         public
         onlyRole(MANAGER_ROLE)
     {
-        // uniswapFactory = IUniswapFactory(uniswapV2Router.factory());
         address uniswapV2Pair = address(0);
+        uint256 totalPercentLiquidPool = 0;
+        if (createSale.createLiquidPool) {
+            uniswapFactory = IUniswapFactory(uniswapV2Router.factory());
+            uniswapV2Pair = uniswapFactory.createPair(
+                createSale.token_,
+                createSale.paymentToken_
+            );
+            totalPercentLiquidPool = createSale.totalPercentLiquidPool;
+        }
+
         _totalSales.increment();
         uint256 totalPercent = 100;
 
@@ -110,9 +119,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             id: current,
             totalLocked: 0,
             totalPercentLiquidPool: createSale.totalPercentLiquidPool,
-            totalPercentForward: totalPercent.sub(
-                createSale.totalPercentLiquidPool
-            ),
+            totalPercentForward: totalPercent.sub(totalPercentLiquidPool),
             startTime: createSale.startTime,
             endTime: createSale.endTime,
             finished: false,
@@ -136,7 +143,8 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             hardCap: createSale.hardCap,
             minPerUser: createSale.minPerUser,
             maxPerUser: createSale.maxPerUser,
-            receiverLiquid: msg.sender
+            receiverLiquid: msg.sender,
+            hasLiquidPool: createSale.createLiquidPool
         });
 
         emit AddSale(_sales[current]);
@@ -176,8 +184,20 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             .mul(sale.totalPercentLiquidPool)
             .div(100);
 
+        if (sale.hasLiquidPool) {
+            uint256 totalTokenInDolarForPool = totalSendToPool.div(sale.price);
+            uniswapV2Router.addLiquidityETH{value: totalSendToPool}(
+                sale.tokenContract,
+                totalTokenInDolarForPool,
+                0, // slippage is unavoidable
+                0, // slippage is unavoidable
+                sale.receiverLiquid,
+                block.timestamp
+            );
+        }
+
         uint256 totalSendToSaleReceiver = amountInPaymentToken_
-            .sub(totalSendToPool)
+            .sub(amountInPaymentToken_.mul(sale.totalPercentForward).div(100))
             .div(2);
 
         erc20Payment.transferFrom(
@@ -189,17 +209,6 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             _metaExpReceiverSale,
             address(this),
             totalSendToSaleReceiver
-        );
-
-        uint256 totalTokenInDolarForPool = totalSendToPool.div(sale.price);
-
-        uniswapV2Router.addLiquidityETH{value: totalSendToPool}(
-            sale.tokenContract,
-            totalTokenInDolarForPool,
-            0, // slippage is unavoidable
-            0, // slippage is unavoidable
-            sale.receiverLiquid,
-            block.timestamp
         );
 
         Order memory order = Order({
@@ -329,7 +338,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
                 _sales[i + 1].finished == false &&
                 _sales[i + 1].initiated == true
             ) {
-                 uint256 currentId = i + 1;
+                uint256 currentId = i + 1;
                 Sale storage currentItem = _sales[currentId];
                 itemCount += 1;
                 sales[currentIndex] = currentItem;

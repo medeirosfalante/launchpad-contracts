@@ -13,6 +13,11 @@ interface IPreSale {
         uint256 claimed;
     }
 
+    struct Type {
+        bytes32 id;
+        string name;
+    }
+
     struct CreateSale {
         uint256 total;
         uint256 price;
@@ -42,7 +47,7 @@ interface IPreSale {
 
     struct Category {
         // Bid Id
-        uint256 id;
+        bytes32 id;
         string name;
         string icon;
     }
@@ -127,6 +132,10 @@ interface IPreSale {
     function defineHighlight(uint256 saleID) external returns (Sale memory);
 
     function toggleLike(uint256 saleID) external returns (Sale memory);
+
+    function createType(string memory name) external returns (uint256);
+
+    function listType() external view returns (Type[] memory types);
 
     function getTokenPriceUniSwap(uint256 saleID, uint256 amount)
         external

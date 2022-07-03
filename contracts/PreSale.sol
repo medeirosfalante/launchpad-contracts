@@ -34,6 +34,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     IUniswapRouter02 private uniswapV2Router;
     Counters.Counter private _itemIds;
     Counters.Counter private _totalCategory;
+    Counters.Counter private _totalTypes;
     Counters.Counter private _totalSales;
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -42,6 +43,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     mapping(uint256 => Order) private _orders;
     mapping(uint256 => Sale) private _sales;
     mapping(uint256 => Category) private _categories;
+    mapping(uint256 => Type) private _types;
 
     string public constant DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN =
         "PreSale: you dont have balance in token";
@@ -67,6 +69,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         "Category: Name cannot be empty";
     string public constant CATEGORY_ICON_EMPATY =
         "Category: Icon cannot be empty";
+    string public constant TYPE_NAME_EMPATY = "Type: Name cannot be empty";
     string public constant SALE_DONT_EXISTS = "Sale: you need create sale";
     string public constant SALE_ENDED = "Sale: ended";
     string public constant SALE_INITIATED = "Sale: initiated";
@@ -384,6 +387,28 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         return price;
     }
 
+    function createType(string memory name)
+        public
+        onlyRole(MANAGER_ROLE)
+        returns (uint256)
+    {
+        bytes memory nameBytes = bytes(name);
+        require(nameBytes.length > 0, TYPE_NAME_EMPATY);
+        _totalTypes.increment();
+
+        bytes32 id = keccak256(
+            abi.encodePacked(
+                block.timestamp,
+                msg.sender,
+                name,
+                _totalSales.current()
+            )
+        );
+
+        _types[_totalTypes.current()] = Category({name: name, id: id});
+        return _totalTypes.current();
+    }
+
     function createCategory(string memory name, string memory icon)
         public
         onlyRole(MANAGER_ROLE)
@@ -410,6 +435,18 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             uint256 currentId = i + 1;
             Category storage currentItem = _categories[currentId];
             categories[currentIndex] = currentItem;
+            currentIndex += 1;
+        }
+    }
+
+    function listType() public view returns (Type[] memory types) {
+        uint256 totalItemCount = _totalTypes.current();
+        uint256 currentIndex = 0;
+        types = new Type[](totalItemCount);
+        for (uint256 i = 0; i < totalItemCount; i++) {
+            uint256 currentId = i + 1;
+            Type storage currentItem = _types[currentId];
+            types[currentIndex] = currentItem;
             currentIndex += 1;
         }
     }

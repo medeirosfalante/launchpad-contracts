@@ -13,6 +13,25 @@ interface IPreSale {
         uint256 claimed;
     }
 
+    struct CreateSale {
+        uint256 total;
+        uint256 price;
+        uint256 startTime;
+        uint256 endTime;
+        bool hasVesting;
+        uint256 startTimeVesting;
+        uint256 finishTimeVesting;
+        uint256 totalPercentLiquidPool;
+        uint256 softCap;
+        uint256 hardCap;
+        uint256 minPerUser;
+        uint256 maxPerUser;
+        string urlProperties;
+        address token_;
+        address paymentToken_;
+        uint256 category;
+    }
+
     struct Price {
         uint256 price;
         string tokenName;
@@ -52,6 +71,10 @@ interface IPreSale {
         string urlProperties;
         bool highlight;
         uint256 liked;
+        uint256 softCap;
+        uint256 hardCap;
+        uint256 minPerUser;
+        uint256 maxPerUser;
     }
 
     struct Order {
@@ -77,24 +100,11 @@ interface IPreSale {
 
     function unpause() external;
 
-    function addSale(
-        string memory urlProperties,
-        address token_,
-        address paymentToken_,
-        uint256 category
-    ) external;
+    function addSale(CreateSale memory createSale) external;
 
-    function start(
-        uint256 saleID,
-        uint256 total,
-        uint256 price,
-        uint256 startTime,
-        uint256 endTime,
-        bool hasVesting,
-        uint256 startTimeVesting,
-        uint256 finishTimeVesting,
-        uint256 totalPercentLiquidPool
-    ) external;
+    function start(uint256 saleID) external;
+
+    function stop(uint256 saleID) external;
 
     function getTokenPrice(uint256 saleID)
         external
@@ -117,4 +127,9 @@ interface IPreSale {
     function defineHighlight(uint256 saleID) external returns (Sale memory);
 
     function toggleLike(uint256 saleID) external returns (Sale memory);
+
+    function getTokenPriceUniSwap(uint256 saleID, uint256 amount)
+        external
+        view
+        returns (uint256);
 }

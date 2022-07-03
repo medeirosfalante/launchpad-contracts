@@ -30,7 +30,7 @@ contract('PreSale', async (accounts) => {
     let preSale = await PreSale.deployed()
     try {
       await preSale.addSale(
-        'https://gateway.pinata.cloud/ipfs/QmepP6HUacEEgqCqFsTFEReq78mQRspFYEsndKeRjo8jwx',
+        'https://gateway.pinata.cloud/ipfs/QmaR8yFnMWT7bjq5HQjfbLRmWnGT97Un383SCEoxEaZJkV',
         crplayToken.address,
         usdtToken.address,
         1,

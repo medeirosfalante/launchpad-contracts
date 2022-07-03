@@ -1,23 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "./IUniswapRouter02.sol";
-import "./IUniswapFactory.sol";
-
 interface IPreSale {
-    struct Vesting {
-        uint256 totalAmount;
-        uint256 startAmount;
-        uint256 startTime;
-        uint256 endTime;
-        uint256 claimed;
-    }
-
-    struct Type {
-        bytes32 id;
-        string name;
-    }
-
     struct CreateSale {
         uint256 total;
         uint256 price;
@@ -37,23 +21,14 @@ interface IPreSale {
         uint256 category;
     }
 
-    struct Price {
-        uint256 price;
-        string tokenName;
-        string tokenSymbol;
-        uint8 tokenDecimals;
-        address tokenContract;
-    }
-
     struct Category {
-        // Bid Id
-        bytes32 id;
+        uint256 id;
         string name;
         string icon;
     }
 
     struct Sale {
-        bytes32 id;
+        uint256 id;
         uint256 totalLocked;
         uint256 totalPercentLiquidPool;
         uint256 totalPercentForward;
@@ -80,6 +55,7 @@ interface IPreSale {
         uint256 hardCap;
         uint256 minPerUser;
         uint256 maxPerUser;
+        address receiverLiquid;
     }
 
     struct Order {
@@ -92,13 +68,6 @@ interface IPreSale {
         uint256 amountInToken;
     }
 
-    function claim(uint256 saleID) external returns (bool);
-
-    function getClaimableAmount(address _user, uint256 saleID)
-        external
-        view
-        returns (uint256 claimableAmount);
-
     function buy(uint256 amountInPaymentToken_, uint256 saleID) external;
 
     function pause() external;
@@ -108,13 +77,6 @@ interface IPreSale {
     function addSale(CreateSale memory createSale) external;
 
     function start(uint256 saleID) external;
-
-    function stop(uint256 saleID) external;
-
-    function getTokenPrice(uint256 saleID)
-        external
-        view
-        returns (Price memory price);
 
     function getPairRouter(uint256 saleID) external view returns (address);
 
@@ -130,15 +92,4 @@ interface IPreSale {
     function getHighlight() external view returns (Sale memory sale);
 
     function defineHighlight(uint256 saleID) external returns (Sale memory);
-
-    function toggleLike(uint256 saleID) external returns (Sale memory);
-
-    function createType(string memory name) external returns (uint256);
-
-    function listType() external view returns (Type[] memory types);
-
-    function getTokenPriceUniSwap(uint256 saleID, uint256 amount)
-        external
-        view
-        returns (uint256);
 }

@@ -10,7 +10,8 @@
         "client": "cd client && npm run start",
         "console": "truffle console --network local",
         "migrate:local": "truffle migrate --reset --network local",
-        "migrate:ropsten": "truffle migrate --reset --network ropsten"
+        "migrate:ropsten": "truffle migrate --reset --network ropsten",
+        "size":"truffle run contract-size"
     },
     "author": "Rafael Medeiros <rafaelgurudesign@gmail.com>",
     "license": "MIT",
@@ -19,7 +20,8 @@
         "@truffle/hdwallet-provider": "^1.2.6",
         "@uniswap/v2-core": "^1.0.1",
         "@uniswap/v2-periphery": "^1.1.0-beta.0",
-        "dotenv": "^8.2.0"
+        "dotenv": "^8.2.0",
+        "truffle-contract-size": "^2.0.1"
     },
     "devDependencies": {
         "@nomiclabs/buidler": "^1.4.8"

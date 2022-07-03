@@ -93,65 +93,52 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         _metaExpReceiverSale = metaExpReceiverSale_;
     }
 
-    function start(
-        uint256 saleID,
-        uint256 total,
-        uint256 price,
-        uint256 startTime,
-        uint256 endTime,
-        bool hasVesting,
-        uint256 startTimeVesting,
-        uint256 finishTimeVesting,
-        uint256 totalPercentLiquidPool
-    ) public onlyRole(MANAGER_ROLE) {
+    function start(uint256 saleID) public onlyRole(MANAGER_ROLE) {
         Sale memory sale = _sales[saleID];
         require(sale.id > 0, SALE_DONT_EXISTS);
         require(_sales[saleID].initiated == false, SALE_INITIATED);
         require(_sales[saleID].creator == msg.sender, DONT_HAVE_ACCESS);
-        IERC20Metadata erc20Token = IERC20Metadata(sale.tokenContract);
-        require(
-            erc20Token.balanceOf(msg.sender) > total,
-            DONT_WAVE_BALANCE_IN_TOKEN
-        );
-        uint256 totalPercent = 100;
-        erc20Token.transferFrom(msg.sender, address(this), total);
         _sales[saleID].initiated = true;
-        _sales[saleID].total = total;
-        _sales[saleID].price = price;
-        _sales[saleID].balance = total;
-        _sales[saleID].startTime = startTime;
-        _sales[saleID].endTime = endTime;
-        _sales[saleID].hasVesting = hasVesting;
-        _sales[saleID].startVesting = startTimeVesting;
-        _sales[saleID].finishVesting = finishTimeVesting;
-        _sales[saleID].totalPercentLiquidPool = totalPercentLiquidPool;
-        _sales[saleID].totalPercentForward = totalPercent.sub(
-            totalPercentLiquidPool
-        );
     }
 
-    function addSale(
-        string memory urlProperties,
-        address token_,
-        address paymentToken_,
-        uint256 category
-    ) public onlyRole(MANAGER_ROLE) {
+    function stop(uint256 saleID) public onlyRole(MANAGER_ROLE) {
+        Sale memory sale = _sales[saleID];
+        require(sale.id > 0, SALE_DONT_EXISTS);
+        require(_sales[saleID].initiated == false, SALE_INITIATED);
+        require(_sales[saleID].creator == msg.sender, DONT_HAVE_ACCESS);
+        _sales[saleID].initiated = false;
+    }
+
+    function addSale(CreateSale memory createSale)
+        public
+        onlyRole(MANAGER_ROLE)
+    {
         uniswapFactory = IUniswapFactory(uniswapV2Router.factory());
         address uniswapV2Pair = uniswapFactory.createPair(
-            token_,
-            paymentToken_
+            createSale.token_,
+            createSale.paymentToken_
         );
         _totalSales.increment();
         bytes32 saleId = keccak256(
             abi.encodePacked(
                 block.timestamp,
                 msg.sender,
-                token_,
-                paymentToken_,
-                category,
+                createSale.token_,
+                createSale.paymentToken_,
+                createSale.category,
                 _totalSales.current()
             )
         );
+
+        uint256 totalPercent = 100;
+
+        IERC20Metadata erc20Token = IERC20Metadata(createSale.token_);
+        require(
+            erc20Token.balanceOf(msg.sender) > createSale.total,
+            DONT_WAVE_BALANCE_IN_TOKEN
+        );
+
+        erc20Token.transferFrom(msg.sender, address(this), createSale.total);
 
         _sales[_totalSales.current()] = Sale({
             id: saleId,
@@ -164,20 +151,45 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             hasVesting: false,
             startVesting: 0,
             finishVesting: 0,
-            tokenPaymentContract: paymentToken_,
-            tokenContract: token_,
+            tokenPaymentContract: createSale.paymentToken_,
+            tokenContract: createSale.token_,
             pair: uniswapV2Pair,
-            category: category,
+            category: createSale.category,
             creator: msg.sender,
             total: 0,
             totalSell: 0,
             balance: 0,
             price: 0,
             initiated: false,
-            urlProperties: urlProperties,
+            urlProperties: createSale.urlProperties,
             highlight: false,
-            liked: 0
+            liked: 0,
+            softCap: 0,
+            hardCap: 0,
+            minPerUser: 0,
+            maxPerUser: 0
         });
+        _sales[_totalSales.current()].total = createSale.total;
+        _sales[_totalSales.current()].price = createSale.price;
+        _sales[_totalSales.current()].balance = createSale.total;
+        _sales[_totalSales.current()].startTime = createSale.startTime;
+        _sales[_totalSales.current()].endTime = createSale.endTime;
+        _sales[_totalSales.current()].hasVesting = createSale.hasVesting;
+        _sales[_totalSales.current()].startVesting = createSale
+            .startTimeVesting;
+        _sales[_totalSales.current()].finishVesting = createSale
+            .finishTimeVesting;
+
+        _sales[_totalSales.current()].totalPercentLiquidPool = createSale
+            .totalPercentLiquidPool;
+        _sales[_totalSales.current()].totalPercentForward = totalPercent.sub(
+            createSale.totalPercentLiquidPool
+        );
+        _sales[_totalSales.current()].softCap = createSale.softCap;
+        _sales[_totalSales.current()].hardCap = createSale.hardCap;
+        _sales[_totalSales.current()].minPerUser = createSale.minPerUser;
+        _sales[_totalSales.current()].maxPerUser = createSale.maxPerUser;
+
         emit AddSale(_sales[_totalSales.current()]);
     }
 
@@ -500,5 +512,21 @@ contract PreSale is Pausable, IPreSale, AccessControl {
                 currentIndex += 1;
             }
         }
+    }
+
+    function getTokenPriceUniSwap(uint256 saleID, uint256 amount)
+        public
+        view
+        returns (uint256)
+    {
+        address pairAddress = getPairRouter(saleID);
+
+        IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
+        IERC20Metadata token1 = IERC20Metadata(pair.token1());
+        (uint256 Res0, uint256 Res1, ) = pair.getReserves();
+
+        // decimals
+        uint256 res0 = Res0 * (10**token1.decimals());
+        return ((amount * res0) / Res1); // return amount of token0 needed to buy token1
     }
 }

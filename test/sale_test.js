@@ -28,7 +28,7 @@ contract('PreSale', async (accounts) => {
     let usdtToken = await USDT.deployed()
     let preSale = await PreSale.deployed()
 
-    let total = web3.utils.toWei('10000000000', 'wei')
+    let total = web3.utils.toWei((16880000000 * 10 ** 10).toString(), 'wei')
     let price = web3.utils.toWei('0.0002135', 'ether')
 
     let minPerUser = web3.utils.toWei('10', 'wei')
@@ -83,6 +83,13 @@ contract('PreSale', async (accounts) => {
     }
   })
 
+  it('list forward', async () => {
+    let preSale = await PreSale.deployed()
+
+    const listForwards = await preSale.listForwards.call(1)
+    assert.equal(listForwards.length, 2)
+  })
+
   it('start sale', async () => {
     let preSale = await PreSale.deployed()
 
@@ -116,7 +123,10 @@ contract('PreSale', async (accounts) => {
     assert.equal(listOrders.length, 1)
     const balanceUsdt = await usdtToken.balanceOf(accounts[4])
     const balancecrPlay = await crplayToken.balanceOf(accounts[4])
-    assert.equal(balancecrPlay.toString(), (total / price).toFixed(0))
+    assert.equal(
+      balancecrPlay.toString(),
+      parseFloat((total / price).toFixed(0)) * 10 ** 10,
+    )
     assert.equal(balanceUsdt.toString(), 0)
   })
 })

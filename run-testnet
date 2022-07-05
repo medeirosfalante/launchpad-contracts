@@ -33,7 +33,7 @@ let inital = 1656727014
 await crplayToken.approve(presale.address,total)
 await goeyToken.approve(presale.address,total)
 
-await usdtToken.approve(presale.address,web3.utils.toWei('100000', 'ether'))
+await usdtToken.approve(presale.address,total)
 
 
 await presale.addSale({total:total,price:price,startTime:inital,endTime:finish,hasVesting:true,startTimeVesting:inital,finishTimeVesting:finish,totalPercentLiquidPool:percent,softCap:softCap,hardCap:hardCap,minPerUser:minPerUser,maxPerUser:maxPerUser,urlProperties:"https://gateway.pinata.cloud/ipfs/QmaR8yFnMWT7bjq5HQjfbLRmWnGT97Un383SCEoxEaZJkV",token_:crplayToken.address,paymentToken_:usdtToken.address,category:1})

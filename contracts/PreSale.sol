@@ -192,16 +192,23 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             amountInPaymentToken_
         );
         uint256 totalTokenInDolar = amountInPaymentToken_.div(sale.price);
-        erc20Token.approve(address(uniswapV2Router), amountInPaymentToken_);
-        uint256 totalSendToPool = amountInPaymentToken_
-            .mul(sale.totalPercentLiquidPool)
-            .div(100);
+
+        uint256 totalSendToPool = 0;
 
         if (sale.hasLiquidPool) {
+            totalSendToPool = amountInPaymentToken_.div(100).mul(
+                sale.totalPercentLiquidPool
+            );
+            erc20Token.approve(address(uniswapV2Router), totalSendToPool);
+            erc20Payment.approve(
+                address(uniswapV2Router),
+                amountInPaymentToken_
+            );
+
             uint256 totalTokenInDolarForPool = totalSendToPool.div(sale.price);
             uniswapV2Router.addLiquidityETH{value: totalSendToPool}(
                 sale.tokenContract,
-                totalTokenInDolarForPool,
+                totalTokenInDolarForPool * 10**erc20Token.decimals(),
                 0, // slippage is unavoidable
                 0, // slippage is unavoidable
                 sale.receiverLiquid,
@@ -232,10 +239,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         });
 
         if (sale.hasVesting) {
-            erc20Token.transfer(
-                vestingAddress,
-                totalTokenInDolar
-            );
+            erc20Token.transfer(vestingAddress, totalTokenInDolar);
             vestingFactory.addUserVesting(
                 msg.sender,
                 totalTokenInDolar,
@@ -245,10 +249,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
                 sale.tokenContract
             );
         } else {
-            erc20Token.approve(msg.sender, totalTokenInDolar);
             erc20Token.transfer(
                 msg.sender,
-                totalTokenInDolar
+                totalTokenInDolar * 10**erc20Token.decimals()
             );
         }
         emit BuySale(_orders[_itemIds.current()], sale);
@@ -307,6 +310,28 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         }
     }
 
+    function addLiquidity(
+        uint256 tokenAmount,
+        uint256 ethAmount,
+        uint256 saleID
+    ) public {
+        Sale memory sale = _sales[saleID];
+        require(_sales[saleID].id > 0, SALE_DONT_EXISTS);
+        IERC20Metadata erc20Token = IERC20Metadata(sale.tokenContract);
+        // approve token transfer to cover all possible scenarios
+        erc20Token.approve(address(uniswapV2Router), tokenAmount);
+
+        // add the liquidity
+        uniswapV2Router.addLiquidityETH{value: ethAmount}(
+            msg.sender,
+            tokenAmount,
+            0, // slippage is unavoidable
+            0, // slippage is unavoidable
+            msg.sender,
+            block.timestamp
+        );
+    }
+
     function listOpenSales() public view returns (Sale[] memory sales) {
         uint256 totalItemCount = _totalSales.current();
         uint256 totalItemCountlist = _totalSales.current();
@@ -347,14 +372,14 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         uint256 currentIndex = 0;
 
         for (uint256 i = 0; i < totalItemCount; i++) {
-            if (_orders[i + 1].saleID == saleID) {
+            if (_forwardAddresses[i + 1].saleID == saleID) {
                 itemCount += 1;
             }
         }
 
         forwards = new Forward[](itemCount);
         for (uint256 i = 0; i < totalItemCountlist; i++) {
-            if (_orders[i + 1].saleID == saleID) {
+            if (_forwardAddresses[i + 1].saleID == saleID) {
                 uint256 currentId = i + 1;
                 Forward storage currentItem = _forwardAddresses[currentId];
                 forwards[currentIndex] = currentItem;

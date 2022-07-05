@@ -62,7 +62,7 @@ interface IPreSale {
     }
 
     struct Order {
-         uint256 id;
+        uint256 id;
         address buyer;
         uint256 price;
         uint256 buyAt;
@@ -99,5 +99,15 @@ interface IPreSale {
         returns (Category[] memory categories);
 
     function getSale(uint256 saleID) external view returns (Sale memory);
-    function listForwards(uint256 saleID) external view returns (Forward[] memory forwards);
+
+    function listForwards(uint256 saleID)
+        external
+        view
+        returns (Forward[] memory forwards);
+
+    function addLiquidity(
+        uint256 tokenAmount,
+        uint256 ethAmount,
+        uint256 saleID
+    ) external;
 }

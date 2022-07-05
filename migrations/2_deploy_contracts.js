@@ -47,7 +47,7 @@ module.exports = async function (deployer, network, accounts) {
     await presale.createCategory('Metaverse', 'google.com')
     await presale.createCategory('Mobility', 'google.com')
 
-    let total = web3.utils.toWei('1', 'ether')
+    let total = web3.utils.toWei((16880000000 * 10 ** 10).toString(), 'wei')
     let price = web3.utils.toWei('0.0002135', 'ether')
 
     let minPerUser = web3.utils.toWei('10', 'wei')
@@ -72,7 +72,7 @@ module.exports = async function (deployer, network, accounts) {
       hasVesting: false,
       startTimeVesting: inital,
       finishTimeVesting: finish,
-      totalPercentLiquidPool: percent,
+      totalPercentLiquidPool: 50,
       softCap: softCap,
       hardCap: hardCap,
       minPerUser: minPerUser,
@@ -88,55 +88,51 @@ module.exports = async function (deployer, network, accounts) {
           addressReceiver: accounts[2],
           name: 'mkt',
           percent: 50,
-          saleID:0,
+          saleID: 0,
         },
         {
           addressReceiver: accounts[3],
           name: 'dev',
           percent: 50,
-          saleID:0,
+          saleID: 0,
         },
       ],
     })
 
-    finish = 1667675814
-
-    await presale.addSale({
-      total: total,
-      price: price,
-      startTime: inital,
-      endTime: finish,
-      hasVesting: false,
-      startTimeVesting: inital,
-      finishTimeVesting: finish,
-      totalPercentLiquidPool: percent,
-      softCap: softCap,
-      hardCap: hardCap,
-      minPerUser: minPerUser,
-      maxPerUser: maxPerUser,
-      urlProperties:
-        'https://gateway.pinata.cloud/ipfs/QmQQ7itEULZf1NFcYyRS12aCx3PdzXNBUrdsBndhjHX9SN',
-      token_: goeyToken.address,
-      paymentToken_: usdtToken.address,
-      category: 2,
-      createLiquidPool: false,
-      forwards: [
-        {
-          addressReceiver: accounts[2],
-          name: 'mkt',
-          percent: 50,
-          saleID:0,
-        },
-        {
-          addressReceiver: accounts[3],
-          name: 'dev',
-          percent: 50,
-          saleID:0,
-        },
-      ],
-    })
+    // await presale.addSale({
+    //   total: total,
+    //   price: price,
+    //   startTime: inital,
+    //   endTime: finish,
+    //   hasVesting: false,
+    //   startTimeVesting: inital,
+    //   finishTimeVesting: finish,
+    //   totalPercentLiquidPool: percent,
+    //   softCap: softCap,
+    //   hardCap: hardCap,
+    //   minPerUser: minPerUser,
+    //   maxPerUser: maxPerUser,
+    //   urlProperties:
+    //     'https://gateway.pinata.cloud/ipfs/QmQQ7itEULZf1NFcYyRS12aCx3PdzXNBUrdsBndhjHX9SN',
+    //   token_: goeyToken.address,
+    //   paymentToken_: usdtToken.address,
+    //   category: 2,
+    //   createLiquidPool: false,
+    //   forwards: [
+    //     {
+    //       addressReceiver: accounts[1],
+    //       name: 'mkt',
+    //       percent: 50,
+    //     },
+    //     {
+    //       addressReceiver: accounts[2],
+    //       name: 'dev',
+    //       percent: 50,
+    //     },
+    //   ],
+    // })
 
     await presale.start(1)
-    await presale.start(2)
+    // await presale.start(2)
   }
 }

@@ -12,19 +12,11 @@ module.exports = {
       port: 7545, // Standard BSC port (default: none)
       network_id: '*', // Any network (default: none)
     },
-    // development: {
-    //   provider: () =>
-    //     new HDWalletProvider(
-    //       mnemonic,
-    //       `https://data-seed-prebsc-1-s1.binance.org:8545`,
-    //     ),
-    //   network_id: 97,
-    //   confirmations: 1,
-    //   timeoutBlocks: 2000,
-    //   skipDryRun: true,
-    //   networkCheckTimeout: 1000000,
-    //   disableConfirmationListener: true,
-    // },
+    development_test: {
+      host: '127.0.0.1', // Localhost (default: none)
+      port: 7545, // Standard BSC port (default: none)
+      network_id: '*', // Any network (default: none)
+    },
     testnet: {
       provider: () =>
         new HDWalletProvider(

@@ -6,11 +6,11 @@ const USDT = artifacts.require('USDT')
 const GOEYCOIN = artifacts.require('GOEYCOIN')
 
 module.exports = async function (deployer, network, accounts) {
-  console.log('network', network)
-  await deployer.deploy(CRPLAY, {
+  await deployer.deploy(USDT, {
     from: accounts[0],
   })
-  await deployer.deploy(USDT, {
+
+  await deployer.deploy(CRPLAY, {
     from: accounts[0],
   })
 
@@ -39,7 +39,7 @@ module.exports = async function (deployer, network, accounts) {
     from: accounts[0],
   })
 
-  if (network == 'development' || network == 'testnet') {
+  if (network == 'development_test' || network == 'testnet') {
     let crplayToken = await CRPLAY.deployed()
     let usdtToken = await USDT.deployed()
     let goeyToken = await GOEYCOIN.deployed()
@@ -69,7 +69,7 @@ module.exports = async function (deployer, network, accounts) {
       price: price,
       startTime: inital,
       endTime: finish,
-      hasVesting: true,
+      hasVesting: false,
       startTimeVesting: inital,
       finishTimeVesting: finish,
       totalPercentLiquidPool: percent,
@@ -82,14 +82,31 @@ module.exports = async function (deployer, network, accounts) {
       token_: crplayToken.address,
       paymentToken_: usdtToken.address,
       category: 1,
+      createLiquidPool: false,
+      forwards: [
+        {
+          addressReceiver: accounts[2],
+          name: 'mkt',
+          percent: 50,
+          saleID:0,
+        },
+        {
+          addressReceiver: accounts[3],
+          name: 'dev',
+          percent: 50,
+          saleID:0,
+        },
+      ],
     })
+
+    finish = 1667675814
 
     await presale.addSale({
       total: total,
       price: price,
       startTime: inital,
       endTime: finish,
-      hasVesting: true,
+      hasVesting: false,
       startTimeVesting: inital,
       finishTimeVesting: finish,
       totalPercentLiquidPool: percent,
@@ -102,6 +119,21 @@ module.exports = async function (deployer, network, accounts) {
       token_: goeyToken.address,
       paymentToken_: usdtToken.address,
       category: 2,
+      createLiquidPool: false,
+      forwards: [
+        {
+          addressReceiver: accounts[2],
+          name: 'mkt',
+          percent: 50,
+          saleID:0,
+        },
+        {
+          addressReceiver: accounts[3],
+          name: 'dev',
+          percent: 50,
+          saleID:0,
+        },
+      ],
     })
 
     await presale.start(1)

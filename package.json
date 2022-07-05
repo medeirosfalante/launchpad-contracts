@@ -12,7 +12,8 @@
         "migrate:local": "truffle migrate --reset --network local",
         "migrate:ropsten": "truffle migrate --reset --network ropsten",
         "size":"truffle run contract-size",
-        "build":"truffle build && npm run size"
+        "build":"truffle build && npm run size",
+        "deploy-test":"truffle deploy --network development_test"
     },
     "author": "Rafael Medeiros <rafaelgurudesign@gmail.com>",
     "license": "MIT",

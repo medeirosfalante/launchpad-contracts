@@ -20,6 +20,7 @@ interface IPreSale {
         address paymentToken_;
         uint256 category;
         bool createLiquidPool;
+        Forward[] forwards;
     }
 
     struct Category {
@@ -61,6 +62,7 @@ interface IPreSale {
     }
 
     struct Order {
+         uint256 id;
         address buyer;
         uint256 price;
         uint256 buyAt;
@@ -68,6 +70,13 @@ interface IPreSale {
         address tokenPaymentContract;
         uint256 saleID;
         uint256 amountInToken;
+    }
+
+    struct Forward {
+        address addressReceiver;
+        string name;
+        uint256 percent;
+        uint256 saleID;
     }
 
     function buy(uint256 amountInPaymentToken_, uint256 saleID) external;
@@ -90,8 +99,5 @@ interface IPreSale {
         returns (Category[] memory categories);
 
     function getSale(uint256 saleID) external view returns (Sale memory);
-
-    function getHighlight() external view returns (Sale memory sale);
-
-    function defineHighlight(uint256 saleID) external returns (Sale memory);
+    function listForwards(uint256 saleID) external view returns (Forward[] memory forwards);
 }

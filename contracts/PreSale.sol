@@ -33,12 +33,14 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     Counters.Counter private _itemIds;
     Counters.Counter private _totalCategory;
     Counters.Counter private _totalSales;
+    Counters.Counter private _forwardIds;
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
     mapping(address => Order[]) private _ordersByUsers;
     mapping(uint256 => Order) private _orders;
     mapping(uint256 => Sale) private _sales;
+    mapping(uint256 => Forward) private _forwardAddresses;
     mapping(uint256 => Category) private _categories;
 
     string public constant DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN =
@@ -63,6 +65,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     string public constant SALE_DONT_INITIATED = "Sale: dont initiated";
     string public constant DONT_HAVE_ACCESS = "Sale: dont have access";
     event AddSale(Sale sale);
+    event BuySale(Order order, Sale sale);
 
     constructor(address _uniswapRouterAddress, address _vestingAddress) {
         _setupRole(MANAGER_ROLE, msg.sender);
@@ -147,6 +150,16 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             hasLiquidPool: createSale.createLiquidPool
         });
 
+        for (uint256 i = 0; i < createSale.forwards.length; i++) {
+            _forwardIds.increment();
+            _forwardAddresses[_forwardIds.current()] = Forward({
+                name: createSale.forwards[i].name,
+                percent: createSale.forwards[i].percent,
+                addressReceiver: createSale.forwards[i].addressReceiver,
+                saleID: current
+            });
+        }
+
         emit AddSale(_sales[current]);
     }
 
@@ -156,7 +169,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     {
         Sale memory sale = _sales[saleID];
         require(_sales[saleID].id > 0, SALE_DONT_EXISTS);
-        if (sale.endTime >= block.timestamp) {
+        if (block.timestamp >= sale.endTime) {
             sale.finished = true;
         }
         require(sale.finished == false, SALE_ENDED);
@@ -169,7 +182,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         IERC20Metadata erc20Payment = IERC20Metadata(sale.tokenPaymentContract);
         IERC20Metadata erc20Token = IERC20Metadata(sale.tokenContract);
         require(
-            erc20Payment.balanceOf(msg.sender) <= amountInPaymentToken_,
+            erc20Payment.balanceOf(msg.sender) >= amountInPaymentToken_,
             DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN
         );
 
@@ -196,22 +209,19 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             );
         }
 
-        uint256 totalSendToSaleReceiver = amountInPaymentToken_
-            .sub(amountInPaymentToken_.mul(sale.totalPercentForward).div(100))
-            .div(2);
+        uint256 forwardValue = amountInPaymentToken_.sub(totalSendToPool);
 
-        erc20Payment.transferFrom(
-            _cryptoSoulReceiverSale,
-            address(this),
-            totalSendToSaleReceiver
-        );
-        erc20Payment.transferFrom(
-            _metaExpReceiverSale,
-            address(this),
-            totalSendToSaleReceiver
-        );
+        Forward[] memory forwards = listForwards(saleID);
 
-        Order memory order = Order({
+        for (uint256 i = 0; i < forwards.length; i++) {
+            erc20Payment.transfer(
+                forwards[i].addressReceiver,
+                forwardValue.div(100).mul(forwards[i].percent)
+            );
+        }
+        _itemIds.increment();
+        _orders[_itemIds.current()] = Order({
+            id: _itemIds.current(),
             buyer: msg.sender,
             price: sale.price,
             buyAt: block.timestamp,
@@ -220,21 +230,28 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             saleID: saleID,
             amountInToken: totalTokenInDolar
         });
-        _orders[_itemIds.current()] = order;
-        vestingFactory.addUserVesting(
-            msg.sender,
-            totalTokenInDolar,
-            totalTokenInDolar,
-            sale.startVesting,
-            sale.finishVesting,
-            sale.tokenContract
-        );
 
-        erc20Payment.transferFrom(
-            vestingAddress,
-            address(this),
-            totalTokenInDolar
-        );
+        if (sale.hasVesting) {
+            erc20Token.transfer(
+                vestingAddress,
+                totalTokenInDolar
+            );
+            vestingFactory.addUserVesting(
+                msg.sender,
+                totalTokenInDolar,
+                totalTokenInDolar,
+                sale.startVesting,
+                sale.finishVesting,
+                sale.tokenContract
+            );
+        } else {
+            erc20Token.approve(msg.sender, totalTokenInDolar);
+            erc20Token.transfer(
+                msg.sender,
+                totalTokenInDolar
+            );
+        }
+        emit BuySale(_orders[_itemIds.current()], sale);
     }
 
     function pause() public onlyRole(MANAGER_ROLE) {
@@ -290,34 +307,6 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         }
     }
 
-    function getHighlight() public view returns (Sale memory sale) {
-        uint256 totalItemCount = _totalSales.current();
-        for (uint256 i = 0; i < totalItemCount; i++) {
-            if (
-                _sales[i + 1].finished == false &&
-                _sales[i + 1].initiated == true &&
-                _sales[i + 1].highlight == true
-            ) {
-                sale = _sales[i + 1];
-            }
-        }
-    }
-
-    function defineHighlight(uint256 saleID)
-        public
-        onlyRole(MANAGER_ROLE)
-        returns (Sale memory)
-    {
-        Sale memory sale = _sales[saleID];
-        require(sale.id > 0, SALE_DONT_EXISTS);
-        uint256 totalItemCount = _totalSales.current();
-        for (uint256 i = 0; i < totalItemCount; i++) {
-            _sales[i + 1].highlight = false;
-        }
-        _sales[saleID].highlight = true;
-        return sale;
-    }
-
     function listOpenSales() public view returns (Sale[] memory sales) {
         uint256 totalItemCount = _totalSales.current();
         uint256 totalItemCountlist = _totalSales.current();
@@ -347,6 +336,33 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         }
     }
 
+    function listForwards(uint256 saleID)
+        public
+        view
+        returns (Forward[] memory forwards)
+    {
+        uint256 totalItemCount = _forwardIds.current();
+        uint256 totalItemCountlist = _forwardIds.current();
+        uint256 itemCount = 0;
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 0; i < totalItemCount; i++) {
+            if (_orders[i + 1].saleID == saleID) {
+                itemCount += 1;
+            }
+        }
+
+        forwards = new Forward[](itemCount);
+        for (uint256 i = 0; i < totalItemCountlist; i++) {
+            if (_orders[i + 1].saleID == saleID) {
+                uint256 currentId = i + 1;
+                Forward storage currentItem = _forwardAddresses[currentId];
+                forwards[currentIndex] = currentItem;
+                currentIndex += 1;
+            }
+        }
+    }
+
     function getMyOrders() public view returns (Order[] memory orders) {
         uint256 totalItemCount = _itemIds.current();
         uint256 totalItemCountlist = _itemIds.current();
@@ -362,7 +378,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         orders = new Order[](itemCount);
         for (uint256 i = 0; i < totalItemCountlist; i++) {
             if (_orders[i + 1].buyer == msg.sender) {
-                uint256 currentId = 1;
+                uint256 currentId = i + 1;
                 Order storage currentItem = _orders[currentId];
                 itemCount += 1;
                 orders[currentIndex] = currentItem;

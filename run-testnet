@@ -10,12 +10,14 @@ let presale = await PreSale.deployed()
 await presale.createCategory('Metaverse', 'google.com')
 await presale.createCategory('Mobility', 'google.com')
 
-let total = web3.utils.toWei('1', 'ether')
+total = web3.utils.toWei('100', 'ether')
 let price = web3.utils.toWei('0.0002135', 'ether')
-
+let totalApprove = web3.utils.toWei('100000000000000000000', 'wei')
 
 let minPerUser = web3.utils.toWei('10', 'wei')
 let maxPerUser = web3.utils.toWei('1000', 'wei')
+
+
 
 
 let softCap = web3.utils.toWei('10000', 'wei')
@@ -31,6 +33,8 @@ let inital = 1656727014
 await crplayToken.approve(presale.address,total)
 await goeyToken.approve(presale.address,total)
 
+await usdtToken.approve(presale.address,web3.utils.toWei('100000', 'ether'))
+
 
 await presale.addSale({total:total,price:price,startTime:inital,endTime:finish,hasVesting:true,startTimeVesting:inital,finishTimeVesting:finish,totalPercentLiquidPool:percent,softCap:softCap,hardCap:hardCap,minPerUser:minPerUser,maxPerUser:maxPerUser,urlProperties:"https://gateway.pinata.cloud/ipfs/QmaR8yFnMWT7bjq5HQjfbLRmWnGT97Un383SCEoxEaZJkV",token_:crplayToken.address,paymentToken_:usdtToken.address,category:1})
 
@@ -39,7 +43,7 @@ await presale.addSale({total:total,price:price,startTime:inital,endTime:finish,h
 await presale.addSale({total:total,price:price,startTime:inital,endTime:finish,hasVesting:true,startTimeVesting:inital,finishTimeVesting:finish,totalPercentLiquidPool:percent,softCap:softCap,hardCap:hardCap,minPerUser:minPerUser,maxPerUser:maxPerUser,urlProperties:"https://gateway.pinata.cloud/ipfs/QmQQ7itEULZf1NFcYyRS12aCx3PdzXNBUrdsBndhjHX9SN",token_:goeyToken.address,paymentToken_:usdtToken.address,category:2})
 
 
-
+await presale.buy(total,1)
 
 
 await presale.start(1)

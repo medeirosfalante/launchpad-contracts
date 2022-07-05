@@ -16,11 +16,10 @@ contract('PreSale', async (accounts) => {
       await preSale.createCategory('zero', 'google.com', {
         from: accountSale,
       })
-    }catch(e){
+    } catch (e) {
       console.log(e)
     }
     const listCategory = await preSale.listCategory.call()
-    console.log(listCategory)
     assert.equal(listCategory.length, 1)
   })
 
@@ -28,60 +27,96 @@ contract('PreSale', async (accounts) => {
     let crplayToken = await CRPLAY.deployed()
     let usdtToken = await USDT.deployed()
     let preSale = await PreSale.deployed()
+
+    let total = web3.utils.toWei('10000000000', 'wei')
+    let price = web3.utils.toWei('0.0002135', 'ether')
+
+    let minPerUser = web3.utils.toWei('10', 'wei')
+    let maxPerUser = web3.utils.toWei('1000', 'wei')
+
+    let softCap = web3.utils.toWei('10000', 'wei')
+    let hardCap = web3.utils.toWei('1000000', 'wei')
+
+    let percent = web3.utils.toWei('50', 'wei')
+
+    let finish = 1664675814
+    let inital = 1656727014
+
     try {
-      await preSale.addSale(
-        'https://gateway.pinata.cloud/ipfs/QmaR8yFnMWT7bjq5HQjfbLRmWnGT97Un383SCEoxEaZJkV',
-        crplayToken.address,
-        usdtToken.address,
-        1,
-        {
-          from: accountSale,
-        },
-      )
+      await crplayToken.approve(preSale.address, total)
+      await preSale.addSale({
+        total: total,
+        price: price,
+        startTime: inital,
+        endTime: finish,
+        hasVesting: false,
+        startTimeVesting: inital,
+        finishTimeVesting: finish,
+        totalPercentLiquidPool: percent,
+        softCap: softCap,
+        hardCap: hardCap,
+        minPerUser: minPerUser,
+        maxPerUser: maxPerUser,
+        urlProperties:
+          'https://gateway.pinata.cloud/ipfs/QmaR8yFnMWT7bjq5HQjfbLRmWnGT97Un383SCEoxEaZJkV',
+        token_: crplayToken.address,
+        paymentToken_: usdtToken.address,
+        category: 1,
+        createLiquidPool: false,
+        forwards: [
+          {
+            addressReceiver: accounts[2],
+            name: 'mkt',
+            percent: 50,
+            saleID: 0,
+          },
+          {
+            addressReceiver: accounts[3],
+            name: 'dev',
+            percent: 50,
+            saleID: 0,
+          },
+        ],
+      })
     } catch (e) {
-      assert.isNotNull(e, 'there was no error')
+      assert.isNull(e, 'there was no error')
     }
   })
 
   it('start sale', async () => {
-    let crplayToken = await CRPLAY.deployed()
-    let usdtToken = await USDT.deployed()
     let preSale = await PreSale.deployed()
 
-    var inital = util.addHours(1, new Date())
-    var finish = util.addHours(1000, new Date())
-
-    var vestingInital = util.addHours(1, new Date())
-    var vestingFinish = util.addHours(10000, new Date())
-
-    const total = web3.utils.toWei('10', 'ether')
-    const price = web3.utils.toWei('1', 'ether')
-
-    await crplayToken.approve(preSale.address,total)
-
     try {
-      await preSale.start(
-        0,
-        total,
-        price,
-        inital,
-        finish,
-        true,
-        vestingInital,
-        vestingFinish,
-        50,
-        {
-          from: accountSale,
-        },
-      )
+      await preSale.start(1)
     } catch (e) {
-      assert.isNotNull(e, 'there was no error')
+      assert.isNull(e, 'there was no error')
     }
   })
 
-  // it('get price', async () => {
-  //   let preSale = await PreSale.deployed()
-  //   const price = await preSale.getTokenPrice.call()
-  //   console.log(price.toString())
-  // })
+  it('buy', async () => {
+    let usdtToken = await USDT.deployed()
+    let preSale = await PreSale.deployed()
+    let crplayToken = await CRPLAY.deployed()
+
+    let total = web3.utils.toWei('100', 'ether')
+    let price = web3.utils.toWei('0.0002135', 'ether')
+
+    await usdtToken.transfer(accounts[4], total)
+
+    await usdtToken.approve(preSale.address, total, { from: accounts[4] })
+
+    try {
+      await preSale.buy(total, 1, { from: accounts[4] })
+    } catch (e) {
+      console.log(e)
+      assert.isNull(e, 'there was no error')
+    }
+
+    const listOrders = await preSale.getMyOrders.call({ from: accounts[4] })
+    assert.equal(listOrders.length, 1)
+    const balanceUsdt = await usdtToken.balanceOf(accounts[4])
+    const balancecrPlay = await crplayToken.balanceOf(accounts[4])
+    assert.equal(balancecrPlay.toString(), (total / price).toFixed(0))
+    assert.equal(balanceUsdt.toString(), 0)
+  })
 })

@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-
 interface IVesting {
     struct Vesting {
         uint256 totalAmount;
@@ -32,6 +31,11 @@ interface IVesting {
         external
         view
         returns (uint256 claimableAmount);
+
+    function getTotal(address _user, address _tokenAddress)
+        external
+        view
+        returns (uint256);
 
     function pause() external;
 

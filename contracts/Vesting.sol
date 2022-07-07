@@ -30,6 +30,7 @@ contract Vesting is Pausable, IVesting, AccessControl {
     string public constant VESTING_NO_VESTING_AVAILABLE_FOR_USER =
         "Vesting:  No vesting available for user";
 
+    bytes32 public constant CONTRACT_ROLE = keccak256("CONTRACT_ROLE");
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
     event UsersUpdated(address indexed token, uint256 users, uint256 amount);
@@ -39,20 +40,15 @@ contract Vesting is Pausable, IVesting, AccessControl {
 
     constructor() {
         _setupRole(MANAGER_ROLE, msg.sender);
+        _setupRole(CONTRACT_ROLE, msg.sender);
     }
 
-    function addContractRole(address ref)
-        public
-        onlyRole(MANAGER_ROLE)
-    {
-        _setupRole(MANAGER_ROLE, ref);
+    function addContractRole(address ref) public onlyRole(MANAGER_ROLE) {
+        _setupRole(CONTRACT_ROLE, ref);
     }
 
-    function rmContractRole(address ref)
-        public
-        onlyRole(MANAGER_ROLE)
-    {
-        revokeRole(MANAGER_ROLE, ref);
+    function rmContractRole(address ref) public onlyRole(MANAGER_ROLE) {
+        revokeRole(CONTRACT_ROLE, ref);
     }
 
     function addUserVesting(
@@ -62,7 +58,7 @@ contract Vesting is Pausable, IVesting, AccessControl {
         uint256 _startTime,
         uint256 _endTime,
         address _tokenAddress
-    ) public onlyRole(MANAGER_ROLE) {
+    ) public onlyRole(CONTRACT_ROLE) {
         require(_user != address(0), VESTING_ZERO_ADDRESS);
         require(_startAmount > 0, VESTING_ZERO_AMOUNT);
         require(_startAmount <= _amount, VESTING_WRONG_TOKEN_VALUES);
@@ -86,8 +82,13 @@ contract Vesting is Pausable, IVesting, AccessControl {
         userVesting[_tokenAddress][msg.sender].totalClaimed =
             userVesting[_tokenAddress][msg.sender].totalClaimed +
             tokens;
+
+        userVesting[_tokenAddress][msg.sender].totalAmount =
+            userVesting[_tokenAddress][msg.sender].totalAmount -
+            tokens;
         IERC20Metadata erc20Token = IERC20Metadata(_tokenAddress);
-        erc20Token.transferFrom(msg.sender, address(this), tokens);
+        erc20Token.transfer(address(this), tokens);
+
         emit Claimed(_tokenAddress, msg.sender, tokens);
         return true;
     }
@@ -102,6 +103,7 @@ contract Vesting is Pausable, IVesting, AccessControl {
             _vesting.totalAmount > 0,
             VESTING_NO_VESTING_AVAILABLE_FOR_USER
         );
+
         if (_vesting.totalAmount == _vesting.claimed) return 0;
 
         if (_vesting.startTime > block.timestamp) return 0;
@@ -119,6 +121,19 @@ contract Vesting is Pausable, IVesting, AccessControl {
         }
 
         claimableAmount = claimableAmount - _vesting.claimed;
+    }
+
+    function getTotal(address _user, address _tokenAddress)
+        public
+        view
+        returns (uint256)
+    {
+        Vesting storage _vesting = userVesting[_tokenAddress][_user];
+        require(
+            _vesting.totalAmount > 0,
+            VESTING_NO_VESTING_AVAILABLE_FOR_USER
+        );
+        return _vesting.totalAmount;
     }
 
     function pause() public onlyRole(MANAGER_ROLE) {

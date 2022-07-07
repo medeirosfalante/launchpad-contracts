@@ -48,3 +48,15 @@ await presale.buy(total,1)
 
 await presale.start(1)
 await presale.start(2)
+
+
+let totalCrplayer = web3.utils.toWei((4200*10**10).toString(), 'wei')
+let totalUSDT = web3.utils.toWei("1", 'ether')
+
+
+
+await crplayToken.approve(presale.address,totalCrplayer)
+
+await usdtToken.approve(presale.address,totalUSDT)
+
+await presale.addLiquidity(totalCrplayer,totalUSDT,1)

@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IUniswapRouter02.sol";
-import "./interfaces/IUniswapFactory.sol";
+import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IUniswapV2Pair.sol";
 
 import "./interfaces/IPreSale.sol";
@@ -199,20 +199,35 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             totalSendToPool = amountInPaymentToken_.div(100).mul(
                 sale.totalPercentLiquidPool
             );
-            erc20Token.approve(address(uniswapV2Router), totalSendToPool);
-            erc20Payment.approve(
-                address(uniswapV2Router),
-                amountInPaymentToken_
-            );
-
+            address router = getPairRouter(saleID);
+            if (router == address(0)) {
+                router = uniswapFactory.createPair(
+                    sale.tokenContract,
+                    sale.tokenPaymentContract
+                );
+            }
             uint256 totalTokenInDolarForPool = totalSendToPool.div(sale.price);
-            uniswapV2Router.addLiquidityETH{value: totalSendToPool}(
+
+            erc20Token.approve(
+                router,
+                totalTokenInDolarForPool * 10**erc20Token.decimals()
+            );
+            erc20Payment.approve(router, totalSendToPool);
+            erc20Token.approve(
+                address(uniswapV2Router),
+                totalTokenInDolarForPool * 10**erc20Token.decimals()
+            );
+            erc20Payment.approve(address(uniswapV2Router), totalSendToPool);
+            // add the liquidity
+            uniswapV2Router.addLiquidity(
                 sale.tokenContract,
+                sale.tokenPaymentContract,
                 totalTokenInDolarForPool * 10**erc20Token.decimals(),
-                0, // slippage is unavoidable
-                0, // slippage is unavoidable
+                totalSendToPool,
+                totalTokenInDolarForPool * 10**erc20Token.decimals(),
+                totalSendToPool,
                 sale.receiverLiquid,
-                block.timestamp
+                block.timestamp + 100
             );
         }
 
@@ -238,12 +253,19 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             amountInToken: totalTokenInDolar
         });
 
+        sale.balance = sale.balance.sub(totalTokenInDolar);
+        sale.totalSell = sale.totalSell.add(totalTokenInDolar);
+        _sales[saleID] = sale;
+
         if (sale.hasVesting) {
-            erc20Token.transfer(vestingAddress, totalTokenInDolar);
+            erc20Token.transfer(
+                vestingAddress,
+                totalTokenInDolar * 10**erc20Token.decimals()
+            );
             vestingFactory.addUserVesting(
                 msg.sender,
-                totalTokenInDolar,
-                totalTokenInDolar,
+                totalTokenInDolar * 10**erc20Token.decimals(),
+                totalTokenInDolar.div(10),
                 sale.startVesting,
                 sale.finishVesting,
                 sale.tokenContract
@@ -312,23 +334,39 @@ contract PreSale is Pausable, IPreSale, AccessControl {
 
     function addLiquidity(
         uint256 tokenAmount,
-        uint256 ethAmount,
+        uint256 amountInPaymentToken_,
         uint256 saleID
     ) public {
         Sale memory sale = _sales[saleID];
         require(_sales[saleID].id > 0, SALE_DONT_EXISTS);
         IERC20Metadata erc20Token = IERC20Metadata(sale.tokenContract);
-        // approve token transfer to cover all possible scenarios
-        erc20Token.approve(address(uniswapV2Router), tokenAmount);
+        IERC20Metadata erc20Payment = IERC20Metadata(sale.tokenPaymentContract);
 
+        address router = getPairRouter(saleID);
+        // approve token transfer to cover all possible scenarios
+
+        erc20Payment.transferFrom(
+            msg.sender,
+            address(this),
+            amountInPaymentToken_
+        );
+
+        erc20Token.transferFrom(msg.sender, address(this), tokenAmount);
+
+        erc20Token.approve(router, tokenAmount);
+        erc20Payment.approve(router, amountInPaymentToken_);
+        erc20Token.approve(address(uniswapV2Router), tokenAmount);
+        erc20Payment.approve(address(uniswapV2Router), amountInPaymentToken_);
         // add the liquidity
-        uniswapV2Router.addLiquidityETH{value: ethAmount}(
-            msg.sender,
+        uniswapV2Router.addLiquidity(
+            sale.tokenContract,
+            sale.tokenPaymentContract,
             tokenAmount,
-            0, // slippage is unavoidable
-            0, // slippage is unavoidable
+            amountInPaymentToken_,
+            0,
+            0,
             msg.sender,
-            block.timestamp
+            block.timestamp + 100
         );
     }
 

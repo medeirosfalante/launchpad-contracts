@@ -82,7 +82,7 @@ module.exports = async function (deployer, network, accounts) {
       token_: crplayToken.address,
       paymentToken_: usdtToken.address,
       category: 1,
-      createLiquidPool: false,
+      createLiquidPool: true,
       forwards: [
         {
           addressReceiver: accounts[2],

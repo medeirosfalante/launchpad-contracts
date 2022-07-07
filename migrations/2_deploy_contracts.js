@@ -1,11 +1,20 @@
 const PreSale = artifacts.require('PreSale')
 const Vesting = artifacts.require('Vesting')
+const Category = artifacts.require('CategoryContract')
+const Order = artifacts.require('OrderContract')
 
 const CRPLAY = artifacts.require('CRPLAY')
 const USDT = artifacts.require('USDT')
 const GOEYCOIN = artifacts.require('GOEYCOIN')
 
 module.exports = async function (deployer, network, accounts) {
+  await deployer.deploy(Category, {
+    from: accounts[0],
+  })
+
+  await deployer.deploy(Order, {
+    from: accounts[0],
+  })
   await deployer.deploy(USDT, {
     from: accounts[0],
   })
@@ -23,11 +32,16 @@ module.exports = async function (deployer, network, accounts) {
   })
 
   let vesting = await Vesting.deployed()
+  let category = await Category.deployed()
+  let order = await Order.deployed()
 
   await deployer.deploy(
     PreSale,
     '0xD99D1c33F9fC3444f8101754aBC46c52416550D1',
     vesting.address,
+    category.address,
+    order.address,
+
     {
       from: accounts[0],
     },
@@ -36,6 +50,10 @@ module.exports = async function (deployer, network, accounts) {
   let presale = await PreSale.deployed()
 
   vesting.addContractRole(presale.address, {
+    from: accounts[0],
+  })
+
+  order.addContractRole(presale.address, {
     from: accounts[0],
   })
 
@@ -70,6 +88,7 @@ module.exports = async function (deployer, network, accounts) {
       startTime: inital,
       endTime: finish,
       hasVesting: false,
+      initalPercentVesting: 10,
       startTimeVesting: inital,
       finishTimeVesting: finish,
       totalPercentLiquidPool: 50,
@@ -98,41 +117,6 @@ module.exports = async function (deployer, network, accounts) {
         },
       ],
     })
-
-    // await presale.addSale({
-    //   total: total,
-    //   price: price,
-    //   startTime: inital,
-    //   endTime: finish,
-    //   hasVesting: false,
-    //   startTimeVesting: inital,
-    //   finishTimeVesting: finish,
-    //   totalPercentLiquidPool: percent,
-    //   softCap: softCap,
-    //   hardCap: hardCap,
-    //   minPerUser: minPerUser,
-    //   maxPerUser: maxPerUser,
-    //   urlProperties:
-    //     'https://gateway.pinata.cloud/ipfs/QmQQ7itEULZf1NFcYyRS12aCx3PdzXNBUrdsBndhjHX9SN',
-    //   token_: goeyToken.address,
-    //   paymentToken_: usdtToken.address,
-    //   category: 2,
-    //   createLiquidPool: false,
-    //   forwards: [
-    //     {
-    //       addressReceiver: accounts[1],
-    //       name: 'mkt',
-    //       percent: 50,
-    //     },
-    //     {
-    //       addressReceiver: accounts[2],
-    //       name: 'dev',
-    //       percent: 50,
-    //     },
-    //   ],
-    // })
-
     await presale.start(1)
-    // await presale.start(2)
   }
 }

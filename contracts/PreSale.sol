@@ -17,6 +17,8 @@ import "./interfaces/IUniswapV2Pair.sol";
 
 import "./interfaces/IPreSale.sol";
 import "./interfaces/IVesting.sol";
+import "./interfaces/ICategoryContract.sol";
+import "./interfaces/IOrderContract.sol";
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
@@ -26,22 +28,22 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     using Counters for Counters.Counter;
     address private _cryptoSoulReceiverSale;
     address private _metaExpReceiverSale;
-    address private vestingAddress;
+    address private immutable vestingAddress;
+    address private immutable categoryAddress;
+    address private immutable orderAddress;
     IUniswapFactory private uniswapFactory;
     IVesting private vestingFactory;
+    ICategoryContract private immutable categoryContractFactory;
+    IOrderContract private immutable orderContractFactory;
+
     IUniswapRouter02 private uniswapV2Router;
-    Counters.Counter private _itemIds;
     Counters.Counter private _totalCategory;
     Counters.Counter private _totalSales;
     Counters.Counter private _forwardIds;
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-
-    mapping(address => Order[]) private _ordersByUsers;
-    mapping(uint256 => Order) private _orders;
     mapping(uint256 => Sale) private _sales;
     mapping(uint256 => Forward) private _forwardAddresses;
-    mapping(uint256 => Category) private _categories;
 
     string public constant DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN =
         "PreSale: you dont have balance in token";
@@ -50,28 +52,28 @@ contract PreSale is Pausable, IPreSale, AccessControl {
 
     string public constant PAYMENT_TOKEN_IS_INVALID =
         "PreSale: you dont have balance in token";
-
-    string public constant CATEGORY_DONT_EXISTS =
-        "Category: you need create category";
-    string public constant CATEGORY_NAME_EMPATY =
-        "Category: Name cannot be empty";
-    string public constant CATEGORY_ICON_EMPATY =
-        "Category: Icon cannot be empty";
-    string public constant TYPE_NAME_EMPATY = "Type: Name cannot be empty";
-    string public constant TYPE_DONT_EXISTS = "Type: you need create sale";
     string public constant SALE_DONT_EXISTS = "Sale: you need create sale";
     string public constant SALE_ENDED = "Sale: ended";
     string public constant SALE_INITIATED = "Sale: initiated";
     string public constant SALE_DONT_INITIATED = "Sale: dont initiated";
     string public constant DONT_HAVE_ACCESS = "Sale: dont have access";
     event AddSale(Sale sale);
-    event BuySale(Order order, Sale sale);
+    event BuySale(Sale sale);
 
-    constructor(address _uniswapRouterAddress, address _vestingAddress) {
+    constructor(
+        address _uniswapRouterAddress,
+        address _vestingAddress,
+        address _categoryAddress,
+        address _orderAddress
+    ) {
         _setupRole(MANAGER_ROLE, msg.sender);
         uniswapV2Router = IUniswapRouter02(_uniswapRouterAddress);
         vestingFactory = IVesting(_vestingAddress);
+        categoryContractFactory = ICategoryContract(_categoryAddress);
+        orderContractFactory = IOrderContract(_orderAddress);
         vestingAddress = _vestingAddress;
+        categoryAddress = _categoryAddress;
+        orderAddress = _orderAddress;
     }
 
     function start(uint256 saleID) public onlyRole(MANAGER_ROLE) {
@@ -127,6 +129,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             endTime: createSale.endTime,
             finished: false,
             hasVesting: createSale.hasVesting,
+            initalPercentVesting: createSale.initalPercentVesting,
             startVesting: createSale.startTimeVesting,
             finishVesting: createSale.finishTimeVesting,
             tokenPaymentContract: createSale.paymentToken_,
@@ -241,17 +244,16 @@ contract PreSale is Pausable, IPreSale, AccessControl {
                 forwardValue.div(100).mul(forwards[i].percent)
             );
         }
-        _itemIds.increment();
-        _orders[_itemIds.current()] = Order({
-            id: _itemIds.current(),
-            buyer: msg.sender,
-            price: sale.price,
-            buyAt: block.timestamp,
-            tokenContract: sale.tokenContract,
-            tokenPaymentContract: sale.tokenPaymentContract,
-            saleID: saleID,
-            amountInToken: totalTokenInDolar
-        });
+
+        orderContractFactory.addOrder(
+            msg.sender,
+            sale.price,
+            block.timestamp,
+            sale.tokenContract,
+            sale.tokenPaymentContract,
+            saleID,
+            totalTokenInDolar
+        );
 
         sale.balance = sale.balance.sub(totalTokenInDolar);
         sale.totalSell = sale.totalSell.add(totalTokenInDolar);
@@ -264,8 +266,8 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             );
             vestingFactory.addUserVesting(
                 msg.sender,
-                totalTokenInDolar * 10**erc20Token.decimals(),
-                totalTokenInDolar.div(10),
+                totalTokenInDolar,
+                totalTokenInDolar.div(100).mul(sale.initalPercentVesting),
                 sale.startVesting,
                 sale.finishVesting,
                 sale.tokenContract
@@ -276,7 +278,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
                 totalTokenInDolar * 10**erc20Token.decimals()
             );
         }
-        emit BuySale(_orders[_itemIds.current()], sale);
+        emit BuySale(sale);
     }
 
     function pause() public onlyRole(MANAGER_ROLE) {
@@ -300,74 +302,6 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     function getSale(uint256 saleID) public view returns (Sale memory) {
         require(_sales[saleID].id > 0, SALE_DONT_EXISTS);
         return _sales[saleID];
-    }
-
-    function createCategory(string memory name, string memory icon)
-        public
-        onlyRole(MANAGER_ROLE)
-        returns (uint256)
-    {
-        bytes memory nameBytes = bytes(name);
-        bytes memory iconBytes = bytes(icon);
-        require(nameBytes.length > 0, CATEGORY_NAME_EMPATY);
-        require(iconBytes.length > 0, CATEGORY_ICON_EMPATY);
-        _totalCategory.increment();
-        _categories[_totalCategory.current()] = Category({
-            id: _totalCategory.current(),
-            name: name,
-            icon: icon
-        });
-        return _totalCategory.current();
-    }
-
-    function listCategory() public view returns (Category[] memory categories) {
-        uint256 totalItemCount = _totalCategory.current();
-        uint256 currentIndex = 0;
-        categories = new Category[](totalItemCount);
-        for (uint256 i = 0; i < totalItemCount; i++) {
-            uint256 currentId = i + 1;
-            Category storage currentItem = _categories[currentId];
-            categories[currentIndex] = currentItem;
-            currentIndex += 1;
-        }
-    }
-
-    function addLiquidity(
-        uint256 tokenAmount,
-        uint256 amountInPaymentToken_,
-        uint256 saleID
-    ) public {
-        Sale memory sale = _sales[saleID];
-        require(_sales[saleID].id > 0, SALE_DONT_EXISTS);
-        IERC20Metadata erc20Token = IERC20Metadata(sale.tokenContract);
-        IERC20Metadata erc20Payment = IERC20Metadata(sale.tokenPaymentContract);
-
-        address router = getPairRouter(saleID);
-        // approve token transfer to cover all possible scenarios
-
-        erc20Payment.transferFrom(
-            msg.sender,
-            address(this),
-            amountInPaymentToken_
-        );
-
-        erc20Token.transferFrom(msg.sender, address(this), tokenAmount);
-
-        erc20Token.approve(router, tokenAmount);
-        erc20Payment.approve(router, amountInPaymentToken_);
-        erc20Token.approve(address(uniswapV2Router), tokenAmount);
-        erc20Payment.approve(address(uniswapV2Router), amountInPaymentToken_);
-        // add the liquidity
-        uniswapV2Router.addLiquidity(
-            sale.tokenContract,
-            sale.tokenPaymentContract,
-            tokenAmount,
-            amountInPaymentToken_,
-            0,
-            0,
-            msg.sender,
-            block.timestamp + 100
-        );
     }
 
     function listOpenSales() public view returns (Sale[] memory sales) {
@@ -421,30 +355,6 @@ contract PreSale is Pausable, IPreSale, AccessControl {
                 uint256 currentId = i + 1;
                 Forward storage currentItem = _forwardAddresses[currentId];
                 forwards[currentIndex] = currentItem;
-                currentIndex += 1;
-            }
-        }
-    }
-
-    function getMyOrders() public view returns (Order[] memory orders) {
-        uint256 totalItemCount = _itemIds.current();
-        uint256 totalItemCountlist = _itemIds.current();
-        uint256 itemCount = 0;
-        uint256 currentIndex = 0;
-
-        for (uint256 i = 0; i < totalItemCount; i++) {
-            if (_orders[i + 1].buyer == msg.sender) {
-                itemCount += 1;
-            }
-        }
-
-        orders = new Order[](itemCount);
-        for (uint256 i = 0; i < totalItemCountlist; i++) {
-            if (_orders[i + 1].buyer == msg.sender) {
-                uint256 currentId = i + 1;
-                Order storage currentItem = _orders[currentId];
-                itemCount += 1;
-                orders[currentIndex] = currentItem;
                 currentIndex += 1;
             }
         }

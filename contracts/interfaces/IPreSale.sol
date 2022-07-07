@@ -8,6 +8,7 @@ interface IPreSale {
         uint256 startTime;
         uint256 endTime;
         bool hasVesting;
+        uint248 initalPercentVesting;
         uint256 startTimeVesting;
         uint256 finishTimeVesting;
         uint256 totalPercentLiquidPool;
@@ -22,13 +23,6 @@ interface IPreSale {
         bool createLiquidPool;
         Forward[] forwards;
     }
-
-    struct Category {
-        uint256 id;
-        string name;
-        string icon;
-    }
-
     struct Sale {
         uint256 id;
         uint256 totalLocked;
@@ -38,6 +32,7 @@ interface IPreSale {
         uint256 endTime;
         bool finished;
         bool hasVesting;
+        uint248 initalPercentVesting;
         uint256 startVesting;
         uint256 finishVesting;
         address tokenPaymentContract;
@@ -61,17 +56,6 @@ interface IPreSale {
         bool hasLiquidPool;
     }
 
-    struct Order {
-        uint256 id;
-        address buyer;
-        uint256 price;
-        uint256 buyAt;
-        address tokenContract;
-        address tokenPaymentContract;
-        uint256 saleID;
-        uint256 amountInToken;
-    }
-
     struct Forward {
         address addressReceiver;
         string name;
@@ -93,11 +77,6 @@ interface IPreSale {
 
     function listOpenSales() external view returns (Sale[] memory sales);
 
-    function listCategory()
-        external
-        view
-        returns (Category[] memory categories);
-
     function getSale(uint256 saleID) external view returns (Sale memory);
 
     function listForwards(uint256 saleID)
@@ -105,9 +84,8 @@ interface IPreSale {
         view
         returns (Forward[] memory forwards);
 
-    function addLiquidity(
-        uint256 tokenAmount,
-        uint256 ethAmount,
-        uint256 saleID
-    ) external;
+    function getTokenPriceUniSwap(uint256 saleID, uint256 amount)
+        external
+        view
+        returns (uint256);
 }

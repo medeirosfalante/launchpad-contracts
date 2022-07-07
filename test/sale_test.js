@@ -1,6 +1,11 @@
 const PreSale = artifacts.require('PreSale')
+const Vesting = artifacts.require('Vesting')
+const Category = artifacts.require('CategoryContract')
+const Order = artifacts.require('OrderContract')
+
 const CRPLAY = artifacts.require('CRPLAY')
 const USDT = artifacts.require('USDT')
+const GOEYCOIN = artifacts.require('GOEYCOIN')
 
 const util = require('../utils/time')
 
@@ -11,15 +16,15 @@ contract('PreSale', async (accounts) => {
   const category1 = 1
 
   it('create category', async () => {
-    let preSale = await PreSale.deployed()
+    let category = await Category.deployed()
     try {
-      await preSale.createCategory('zero', 'google.com', {
+      await category.create('zero', 'google.com', {
         from: accountSale,
       })
     } catch (e) {
       console.log(e)
     }
-    const listCategory = await preSale.listCategory.call()
+    const listCategory = await category.list.call()
     assert.equal(listCategory.length, 1)
   })
 
@@ -49,7 +54,8 @@ contract('PreSale', async (accounts) => {
         price: price,
         startTime: inital,
         endTime: finish,
-        hasVesting: false,
+        hasVesting: true,
+        initalPercentVesting: 10,
         startTimeVesting: inital,
         finishTimeVesting: finish,
         totalPercentLiquidPool: percent,
@@ -103,7 +109,9 @@ contract('PreSale', async (accounts) => {
   it('buy', async () => {
     let usdtToken = await USDT.deployed()
     let preSale = await PreSale.deployed()
+    let vesting = await Vesting.deployed()
     let crplayToken = await CRPLAY.deployed()
+    let order = await Order.deployed()
 
     let total = web3.utils.toWei('100', 'ether')
     let price = web3.utils.toWei('0.0002135', 'ether')
@@ -119,14 +127,50 @@ contract('PreSale', async (accounts) => {
       assert.isNull(e, 'there was no error')
     }
 
-    const listOrders = await preSale.getMyOrders.call({ from: accounts[4] })
+    const listOrders = await order.listByUser.call({ from: accounts[4] })
     assert.equal(listOrders.length, 1)
     const balanceUsdt = await usdtToken.balanceOf(accounts[4])
-    const balancecrPlay = await crplayToken.balanceOf(accounts[4])
+    const balancecrPlay = await crplayToken.balanceOf(vesting.address)
     assert.equal(
       balancecrPlay.toString(),
       parseFloat((total / price).toFixed(0)) * 10 ** 10,
     )
+    const vestingBalance = await vesting.getTotal(
+      accounts[4],
+      crplayToken.address,
+    )
+
+    assert.equal(
+      parseInt(vestingBalance.toString()) * 10 ** 10,
+      parseFloat((total / price).toFixed(0)) * 10 ** 10,
+    )
+
     assert.equal(balanceUsdt.toString(), 0)
+  })
+
+  it('claim vesting', async () => {
+    let vesting = await Vesting.deployed()
+    let crplayToken = await CRPLAY.deployed()
+    const vestingBalance = await vesting.getTotal(
+      accounts[4],
+      crplayToken.address,
+    )
+
+    const vestingClaimBalance = await vesting.getClaimableAmount(
+      accounts[4],
+      crplayToken.address,
+    )
+
+    await vesting.claim(crplayToken.address, { from: accounts[4] })
+
+    const vestingBalanceNew = await vesting.getTotal(
+      accounts[4],
+      crplayToken.address,
+    )
+
+    assert.equal(
+      vestingBalanceNew.toString(),
+      (vestingBalance - vestingClaimBalance).toString(),
+    )
   })
 })

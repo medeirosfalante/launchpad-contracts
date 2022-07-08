@@ -22,6 +22,8 @@ interface IPreSale {
         uint256 category;
         bool createLiquidPool;
         Forward[] forwards;
+        uint256 discontPrice;
+        bool uniswapPrice;
     }
     struct Sale {
         uint256 id;
@@ -44,6 +46,8 @@ interface IPreSale {
         uint256 totalSell;
         uint256 balance;
         uint256 price;
+        uint256 finalPrice;
+         uint256 discontPrice;
         bool initiated;
         string urlProperties;
         bool highlight;
@@ -54,6 +58,7 @@ interface IPreSale {
         uint256 maxPerUser;
         address receiverLiquid;
         bool hasLiquidPool;
+        bool uniswapPrice;
     }
 
     struct Forward {
@@ -84,7 +89,7 @@ interface IPreSale {
         view
         returns (Forward[] memory forwards);
 
-    function getTokenPriceUniSwap(uint256 saleID, uint256 amount)
+    function getTokenPriceUniSwap(address pairAddress, uint256 amount)
         external
         view
         returns (uint256);

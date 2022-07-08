@@ -5,7 +5,6 @@ const Order = artifacts.require('OrderContract')
 
 const CRPLAY = artifacts.require('CRPLAY')
 const USDT = artifacts.require('USDT')
-const GOEYCOIN = artifacts.require('GOEYCOIN')
 
 const util = require('../utils/time')
 

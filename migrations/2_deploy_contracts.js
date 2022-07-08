@@ -5,7 +5,6 @@ const Order = artifacts.require('OrderContract')
 
 const CRPLAY = artifacts.require('CRPLAY')
 const USDT = artifacts.require('USDT')
-const GOEYCOIN = artifacts.require('GOEYCOIN')
 
 module.exports = async function (deployer, network, accounts) {
   await deployer.deploy(Category, {
@@ -22,11 +21,6 @@ module.exports = async function (deployer, network, accounts) {
   await deployer.deploy(CRPLAY, {
     from: accounts[0],
   })
-
-  await deployer.deploy(GOEYCOIN, {
-    from: accounts[0],
-  })
-
   await deployer.deploy(Vesting, {
     from: accounts[0],
   })
@@ -56,31 +50,24 @@ module.exports = async function (deployer, network, accounts) {
   order.addContractRole(presale.address, {
     from: accounts[0],
   })
+  await category.create('Metaverse', 'google.com')
+  await category.create('Mobility', 'google.com')
 
   if (network == 'development_test' || network == 'testnet') {
     let crplayToken = await CRPLAY.deployed()
     let usdtToken = await USDT.deployed()
-    let goeyToken = await GOEYCOIN.deployed()
-
-    await presale.createCategory('Metaverse', 'google.com')
-    await presale.createCategory('Mobility', 'google.com')
-
     let total = web3.utils.toWei((16880000000 * 10 ** 10).toString(), 'wei')
-    let price = web3.utils.toWei('0.0002135', 'ether')
+    let price = web3.utils.toWei('1', 'ether')
 
     let minPerUser = web3.utils.toWei('10', 'wei')
     let maxPerUser = web3.utils.toWei('1000', 'wei')
 
     let softCap = web3.utils.toWei('10000', 'wei')
     let hardCap = web3.utils.toWei('1000000', 'wei')
-
-    let percent = web3.utils.toWei('50', 'wei')
-
     let finish = 1664675814
     let inital = 1656727014
 
     await crplayToken.approve(presale.address, total)
-    await goeyToken.approve(presale.address, total)
 
     await presale.addSale({
       total: total,
@@ -102,6 +89,8 @@ module.exports = async function (deployer, network, accounts) {
       paymentToken_: usdtToken.address,
       category: 1,
       createLiquidPool: true,
+      uniswapPrice:true,
+      discontPrice: 50,
       forwards: [
         {
           addressReceiver: accounts[2],

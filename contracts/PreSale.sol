@@ -141,6 +141,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             totalSell: 0,
             balance: createSale.total,
             price: createSale.price,
+            finalPrice: createSale.price.sub(
+                createSale.price.div(100).mul(createSale.discontPrice)
+            ),
             initiated: false,
             urlProperties: createSale.urlProperties,
             highlight: false,
@@ -150,7 +153,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             minPerUser: createSale.minPerUser,
             maxPerUser: createSale.maxPerUser,
             receiverLiquid: msg.sender,
-            hasLiquidPool: createSale.createLiquidPool
+            hasLiquidPool: createSale.createLiquidPool,
+            uniswapPrice: createSale.uniswapPrice,
+            discontPrice: createSale.discontPrice
         });
 
         for (uint256 i = 0; i < createSale.forwards.length; i++) {
@@ -189,12 +194,23 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN
         );
 
+        // if (sale.uniswapPrice) {
+        //     uint256 price = getTokenPriceUniSwap(saleID);
+        //     if (price > 0) {
+        //         sale.price = price;
+        //         sale.finalPrice = sale.price.sub(
+        //             sale.price.div(100).mul(sale.discontPrice)
+        //         );
+        //     }
+        // }
+
+        if (sale.finalPrice == 0) {}
         erc20Payment.transferFrom(
             msg.sender,
             address(this),
             amountInPaymentToken_
         );
-        uint256 totalTokenInDolar = amountInPaymentToken_.div(sale.price);
+        uint256 totalTokenInDolar = amountInPaymentToken_.div(sale.finalPrice);
 
         uint256 totalSendToPool = 0;
 
@@ -247,7 +263,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
 
         orderContractFactory.addOrder(
             msg.sender,
-            sale.price,
+            sale.finalPrice,
             block.timestamp,
             sale.tokenContract,
             sale.tokenPaymentContract,
@@ -360,19 +376,15 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         }
     }
 
-    function getTokenPriceUniSwap(uint256 saleID, uint256 amount)
+       function getTokenPriceUniSwap(address pairAddress, uint256 amount)
         public
         view
         returns (uint256)
     {
-        address pairAddress = getPairRouter(saleID);
-
         IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
         IERC20Metadata token1 = IERC20Metadata(pair.token1());
         (uint256 Res0, uint256 Res1, ) = pair.getReserves();
-
-        // decimals
-        uint256 res0 = Res0 * (10**token1.decimals());
-        return ((amount * res0) / Res1); // return amount of token0 needed to buy token1
+        uint256 res0 = Res0;
+        return 0; // return amount of token0 needed to buy token1
     }
 }

@@ -1,6 +1,5 @@
 let crplayToken = await CRPLAY.deployed()
 let usdtToken = await USDT.deployed()
-let goeyToken = await GOEYCOIN.deployed()
 let presale = await PreSale.deployed()
 
 
@@ -10,7 +9,7 @@ let presale = await PreSale.deployed()
 await presale.createCategory('Metaverse', 'google.com')
 await presale.createCategory('Mobility', 'google.com')
 
-total = web3.utils.toWei('100', 'ether')
+total = web3.utils.toWei('1000', 'ether')
 let price = web3.utils.toWei('0.0002135', 'ether')
 let totalApprove = web3.utils.toWei('100000000000000000000', 'wei')
 
@@ -60,3 +59,8 @@ await crplayToken.approve(presale.address,totalCrplayer)
 await usdtToken.approve(presale.address,totalUSDT)
 
 await presale.addLiquidity(totalCrplayer,totalUSDT,1)
+
+let priceRef = await presale.getTokenPriceUniSwap("0xCA7A63DC02c234fAd19eb0f8D643cE8C08FD2D4a",100);
+let pair = await presale.getPairRouter(1);
+
+

@@ -47,7 +47,7 @@ interface IPreSale {
         uint256 balance;
         uint256 price;
         uint256 finalPrice;
-         uint256 discontPrice;
+        uint256 discontPrice;
         bool initiated;
         string urlProperties;
         bool highlight;
@@ -89,8 +89,8 @@ interface IPreSale {
         view
         returns (Forward[] memory forwards);
 
-    function getTokenPriceUniSwap(address pairAddress, uint256 amount)
+    function getTokenPriceUniSwap(uint256 saleID)
         external
         view
-        returns (uint256);
+        returns (uint256[] memory);
 }

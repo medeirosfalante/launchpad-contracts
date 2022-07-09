@@ -25,7 +25,7 @@ module.exports = {
         ),
       network_id: 97,
       confirmations: 1,
-      timeoutBlocks: 2000,
+      timeoutBlocks: 2000000,
       skipDryRun: true,
       networkCheckTimeout: 1000000,
       disableConfirmationListener: true,

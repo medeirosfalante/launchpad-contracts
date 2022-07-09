@@ -50,14 +50,11 @@ module.exports = async function (deployer, network, accounts) {
   order.addContractRole(presale.address, {
     from: accounts[0],
   })
-  await category.create('Metaverse', 'google.com')
-  await category.create('Mobility', 'google.com')
-
   if (network == 'development_test' || network == 'testnet') {
     let crplayToken = await CRPLAY.deployed()
     let usdtToken = await USDT.deployed()
     let total = web3.utils.toWei((16880000000 * 10 ** 10).toString(), 'wei')
-    let price = web3.utils.toWei('1', 'ether')
+    let price = web3.utils.toWei('0.0002135', 'ether')
 
     let minPerUser = web3.utils.toWei('10', 'wei')
     let maxPerUser = web3.utils.toWei('1000', 'wei')
@@ -89,7 +86,7 @@ module.exports = async function (deployer, network, accounts) {
       paymentToken_: usdtToken.address,
       category: 1,
       createLiquidPool: true,
-      uniswapPrice:true,
+      uniswapPrice: false,
       discontPrice: 50,
       forwards: [
         {

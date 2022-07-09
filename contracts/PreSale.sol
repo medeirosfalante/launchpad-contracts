@@ -98,12 +98,18 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     {
         address uniswapV2Pair = address(0);
         uint256 totalPercentLiquidPool = 0;
+        uniswapFactory = IUniswapFactory(uniswapV2Router.factory());
         if (createSale.createLiquidPool) {
-            uniswapFactory = IUniswapFactory(uniswapV2Router.factory());
-            uniswapV2Pair = uniswapFactory.createPair(
+            uniswapV2Pair = uniswapFactory.getPair(
                 createSale.token_,
                 createSale.paymentToken_
             );
+            if (uniswapV2Pair == address(0)) {
+                uniswapV2Pair = uniswapFactory.createPair(
+                    createSale.token_,
+                    createSale.paymentToken_
+                );
+            }
             totalPercentLiquidPool = createSale.totalPercentLiquidPool;
         }
 
@@ -194,17 +200,19 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN
         );
 
-        // if (sale.uniswapPrice) {
-        //     uint256 price = getTokenPriceUniSwap(saleID);
-        //     if (price > 0) {
-        //         sale.price = price;
-        //         sale.finalPrice = sale.price.sub(
-        //             sale.price.div(100).mul(sale.discontPrice)
-        //         );
-        //     }
-        // }
-
-        if (sale.finalPrice == 0) {}
+        if (sale.uniswapPrice) {
+            // uint256 price = getTokenPriceUniSwap(saleID);
+            // if (price > 0) {
+            //     sale.price = price;
+            //     sale.finalPrice = sale.price.sub(
+            //         sale.price.div(100).mul(sale.discontPrice)
+            //     );
+            // }
+        } else {
+            sale.finalPrice = sale.price.sub(
+                sale.price.div(100).mul(sale.discontPrice)
+            );
+        }
         erc20Payment.transferFrom(
             msg.sender,
             address(this),
@@ -376,15 +384,20 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         }
     }
 
-       function getTokenPriceUniSwap(address pairAddress, uint256 amount)
+    function getTokenPriceUniSwap(uint256 saleID)
         public
         view
-        returns (uint256)
+        returns (uint256[] memory)
     {
-        IUniswapV2Pair pair = IUniswapV2Pair(pairAddress);
-        IERC20Metadata token1 = IERC20Metadata(pair.token1());
-        (uint256 Res0, uint256 Res1, ) = pair.getReserves();
-        uint256 res0 = Res0;
-        return 0; // return amount of token0 needed to buy token1
+        Sale memory sale = _sales[saleID];
+        require(_sales[saleID].id > 0, SALE_DONT_EXISTS);
+        address[] memory path;
+        path[0] = sale.tokenPaymentContract;
+        path[1] = sale.tokenContract;
+        uint256[] memory amounts = uniswapV2Router.getAmountsOut(
+            10000000000,
+            path
+        );
+        return amounts; // return amount of token0 needed to buy token1
     }
 }

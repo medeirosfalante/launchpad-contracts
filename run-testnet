@@ -1,13 +1,13 @@
 let crplayToken = await CRPLAY.deployed()
-let usdtToken = await USDT.deployed()
+let usdtToken = await USDT.at("0xEA1a8851AdFEB9e941D19FD8e3d398824FC2e147")
 let presale = await PreSale.deployed()
+let category = await CategoryContract.deployed()
 
 
 
 
-
-await presale.createCategory('Metaverse', 'google.com')
-await presale.createCategory('Mobility', 'google.com')
+await category.create('Metaverse', 'google.com')
+await category.create('Mobility', 'google.com')
 
 total = web3.utils.toWei('1000', 'ether')
 let price = web3.utils.toWei('0.0002135', 'ether')
@@ -37,11 +37,6 @@ await usdtToken.approve(presale.address,total)
 
 await presale.addSale({total:total,price:price,startTime:inital,endTime:finish,hasVesting:true,startTimeVesting:inital,finishTimeVesting:finish,totalPercentLiquidPool:percent,softCap:softCap,hardCap:hardCap,minPerUser:minPerUser,maxPerUser:maxPerUser,urlProperties:"https://gateway.pinata.cloud/ipfs/QmaR8yFnMWT7bjq5HQjfbLRmWnGT97Un383SCEoxEaZJkV",token_:crplayToken.address,paymentToken_:usdtToken.address,category:1})
 
-
-
-await presale.addSale({total:total,price:price,startTime:inital,endTime:finish,hasVesting:true,startTimeVesting:inital,finishTimeVesting:finish,totalPercentLiquidPool:percent,softCap:softCap,hardCap:hardCap,minPerUser:minPerUser,maxPerUser:maxPerUser,urlProperties:"https://gateway.pinata.cloud/ipfs/QmQQ7itEULZf1NFcYyRS12aCx3PdzXNBUrdsBndhjHX9SN",token_:goeyToken.address,paymentToken_:usdtToken.address,category:2})
-
-
 await presale.buy(total,1)
 
 
@@ -60,7 +55,9 @@ await usdtToken.approve(presale.address,totalUSDT)
 
 await presale.addLiquidity(totalCrplayer,totalUSDT,1)
 
-let priceRef = await presale.getTokenPriceUniSwap("0xCA7A63DC02c234fAd19eb0f8D643cE8C08FD2D4a",100);
+let priceRef = await presale.getTokenPriceUniSwap(1);
 let pair = await presale.getPairRouter(1);
+let list = await presale.listOpenSales();
 
 
+let pairInfo = await presale.pairInfo("0x0A936d0ff7e3a546176da3D2a25909Fac7a282Ad","0xEA1a8851AdFEB9e941D19FD8e3d398824FC2e147");

@@ -70,26 +70,15 @@ interface IPreSale {
     }
 
     function buy(uint256 amountInPaymentToken_, uint256 saleID) external;
-
     function pause() external;
-
     function unpause() external;
-
     function addSale(CreateSale memory createSale) external;
-
     function start(uint256 saleID) external;
-
     function listOpenSales() external view returns (Sale[] memory sales);
-
     function getSale(uint256 saleID) external view returns (Sale memory);
-
     function listForwards(uint256 saleID)
         external
         view
         returns (Forward[] memory forwards);
-
-    function getTokenPriceUniSwap(uint256 saleID)
-        external
-        view
-        returns (uint256[] memory);
+    function definePrice(uint256 saleID, uint256 price) external;
 }

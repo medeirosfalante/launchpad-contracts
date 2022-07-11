@@ -3,18 +3,14 @@ pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./interfaces/IUniswapRouter02.sol";
 import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IUniswapV2Pair.sol";
-
 import "./interfaces/IPreSale.sol";
 import "./interfaces/IVesting.sol";
 import "./interfaces/ICategoryContract.sol";
@@ -45,6 +41,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     uint256 private factorPercent = 5000;
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
     mapping(uint256 => Sale) private _sales;
     mapping(uint256 => Forward) private _forwardAddresses;
     mapping(uint256 => mapping(address => uint256)) private _maxPerUsers;
@@ -76,6 +73,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         address _orderAddress
     ) {
         _setupRole(MANAGER_ROLE, msg.sender);
+        _setupRole(ORACLE_ROLE, msg.sender);
         uniswapV2Router = IUniswapRouter02(_uniswapRouterAddress);
         vestingFactory = IVesting(_vestingAddress);
         categoryContractFactory = ICategoryContract(_categoryAddress);
@@ -83,6 +81,14 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         vestingAddress = _vestingAddress;
         categoryAddress = _categoryAddress;
         orderAddress = _orderAddress;
+    }
+
+    function addOracleRole(address ref) public onlyRole(ORACLE_ROLE) {
+        _setupRole(ORACLE_ROLE, ref);
+    }
+
+    function rmOracleRole(address ref) public onlyRole(ORACLE_ROLE) {
+        revokeRole(ORACLE_ROLE, ref);
     }
 
     function start(uint256 saleID) public onlyRole(MANAGER_ROLE) {
@@ -144,14 +150,12 @@ contract PreSale is Pausable, IPreSale, AccessControl {
                 ),
             DONT_WAVE_BALANCE_IN_TOKEN
         );
-
         erc20Token.transferFrom(
             msg.sender,
             address(this),
             totalsend * 10**(erc20Token.decimals() - 6)
         );
         erc20Token.transferFrom(msg.sender, address(this), createSale.total);
-
         _sales[current] = Sale({
             id: current,
             totalLocked: 0,
@@ -200,7 +204,6 @@ contract PreSale is Pausable, IPreSale, AccessControl {
                 saleID: current
             });
         }
-
         emit AddSale(_sales[current]);
     }
 
@@ -236,20 +239,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             erc20Payment.balanceOf(msg.sender) >= amountInPaymentToken_,
             DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN
         );
-
-        if (sale.uniswapPrice) {
-            // uint256 price = getTokenPriceUniSwap(saleID);
-            // if (price > 0) {
-            //     sale.price = price;
-            //     sale.finalPrice = sale.price.sub(
-            //         sale.price.div(100).mul(sale.discontPrice)
-            //     );
-            // }
-        } else {
-            sale.finalPrice = sale.price.sub(
-                sale.price.div(100).mul(sale.discontPrice)
-            );
-        }
+        sale.finalPrice = sale.price.sub(
+            sale.price.div(100).mul(sale.discontPrice)
+        );
         erc20Payment.transferFrom(
             msg.sender,
             address(this),
@@ -316,11 +308,13 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             totalTokenInDolar
         );
 
-        sale.balance = sale.balance.sub(totalTokenInDolar);
-        sale.totalSell = sale.totalSell.add(totalTokenInDolar);
-        sale.raised = sale.raised.add(amountInPaymentToken_);
-        _sales[saleID] = sale;
-
+        _sales[saleID].balance = _sales[saleID].balance.sub(totalTokenInDolar);
+        _sales[saleID].totalSell = _sales[saleID].totalSell.add(
+            totalTokenInDolar
+        );
+        _sales[saleID].raised = _sales[saleID].raised.add(
+            amountInPaymentToken_
+        );
         if (sale.hasVesting) {
             erc20Token.transfer(
                 vestingAddress,
@@ -410,7 +404,6 @@ contract PreSale is Pausable, IPreSale, AccessControl {
                 itemCount += 1;
             }
         }
-
         forwards = new Forward[](itemCount);
         for (uint256 i = 0; i < totalItemCountlist; i++) {
             if (_forwardAddresses[i + 1].saleID == saleID) {
@@ -422,20 +415,11 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         }
     }
 
-    function getTokenPriceUniSwap(uint256 saleID)
+    function definePrice(uint256 saleID, uint256 price)
         public
-        view
-        returns (uint256[] memory)
+        onlyRole(ORACLE_ROLE)
     {
-        Sale memory sale = _sales[saleID];
         require(_sales[saleID].id > 0, SALE_DONT_EXISTS);
-        address[] memory path;
-        path[0] = sale.tokenPaymentContract;
-        path[1] = sale.tokenContract;
-        uint256[] memory amounts = uniswapV2Router.getAmountsOut(
-            10000000000,
-            path
-        );
-        return amounts; // return amount of token0 needed to buy token1
+        _sales[saleID].price = price;
     }
 }

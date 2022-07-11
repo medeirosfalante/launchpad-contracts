@@ -31,23 +31,21 @@ contract('PreSale', async (accounts) => {
     let crplayToken = await CRPLAY.deployed()
     let usdtToken = await USDT.deployed()
     let preSale = await PreSale.deployed()
-
-    let total = web3.utils.toWei((16880000000 * 10 ** 10).toString(), 'wei')
+    let total = web3.utils.toWei((13504000000 * 10 ** 10).toString(), 'wei')
+    let totalSend = web3.utils.toWei((16880000000 * 10 ** 10).toString(), 'wei')
     let price = web3.utils.toWei('0.0002135', 'ether')
 
-    let minPerUser = web3.utils.toWei('10', 'wei')
-    let maxPerUser = web3.utils.toWei('1000', 'wei')
+    let minPerUser = web3.utils.toWei('10', 'ether')
+    let maxPerUser = web3.utils.toWei('1000', 'ether')
 
-    let softCap = web3.utils.toWei('10000', 'wei')
-    let hardCap = web3.utils.toWei('1000000', 'wei')
-
-    let percent = web3.utils.toWei('50', 'wei')
+    let softCap = web3.utils.toWei('10000', 'ether')
+    let hardCap = web3.utils.toWei('1000000', 'ether')
 
     let finish = 1664675814
     let inital = 1656727014
 
     try {
-      await crplayToken.approve(preSale.address, total)
+      await crplayToken.approve(preSale.address, totalSend)
       await preSale.addSale({
         total: total,
         price: price,
@@ -57,7 +55,7 @@ contract('PreSale', async (accounts) => {
         initalPercentVesting: 10,
         startTimeVesting: inital,
         finishTimeVesting: finish,
-        totalPercentLiquidPool: percent,
+        totalPercentLiquidPool: 50,
         softCap: softCap,
         hardCap: hardCap,
         minPerUser: minPerUser,
@@ -68,6 +66,8 @@ contract('PreSale', async (accounts) => {
         paymentToken_: usdtToken.address,
         category: 1,
         createLiquidPool: false,
+        uniswapPrice: false,
+        discontPrice: 50,
         forwards: [
           {
             addressReceiver: accounts[2],
@@ -84,8 +84,15 @@ contract('PreSale', async (accounts) => {
         ],
       })
     } catch (e) {
-      assert.isNull(e, 'there was no error')
+      console.log(e)
+      assert.isNull(e)
     }
+
+    const balancecrPlay = await crplayToken.balanceOf(preSale.address)
+    assert.equal(
+      parseInt(totalSend.toString()),
+      parseInt(balancecrPlay.toString()),
+    )
   })
 
   it('list forward', async () => {
@@ -97,7 +104,6 @@ contract('PreSale', async (accounts) => {
 
   it('start sale', async () => {
     let preSale = await PreSale.deployed()
-
     try {
       await preSale.start(1)
     } catch (e) {
@@ -131,8 +137,8 @@ contract('PreSale', async (accounts) => {
     const balanceUsdt = await usdtToken.balanceOf(accounts[4])
     const balancecrPlay = await crplayToken.balanceOf(vesting.address)
     assert.equal(
-      balancecrPlay.toString(),
-      parseFloat((total / price).toFixed(0)) * 10 ** 10,
+      parseInt(balancecrPlay.toString()),
+      parseFloat((total / price).toFixed(0)) * 2 * 10 ** 10,
     )
     const vestingBalance = await vesting.getTotal(
       accounts[4],
@@ -141,35 +147,35 @@ contract('PreSale', async (accounts) => {
 
     assert.equal(
       parseInt(vestingBalance.toString()) * 10 ** 10,
-      parseFloat((total / price).toFixed(0)) * 10 ** 10,
+      parseFloat((total / price).toFixed(0)) * 2 * 10 ** 10,
     )
 
     assert.equal(balanceUsdt.toString(), 0)
   })
 
-  it('claim vesting', async () => {
-    let vesting = await Vesting.deployed()
-    let crplayToken = await CRPLAY.deployed()
-    const vestingBalance = await vesting.getTotal(
-      accounts[4],
-      crplayToken.address,
-    )
+  // it('claim vesting', async () => {
+  //   let vesting = await Vesting.deployed()
+  //   let crplayToken = await CRPLAY.deployed()
+  //   const vestingBalance = await vesting.getTotal(
+  //     accounts[4],
+  //     crplayToken.address,
+  //   )
 
-    const vestingClaimBalance = await vesting.getClaimableAmount(
-      accounts[4],
-      crplayToken.address,
-    )
+  //   const vestingClaimBalance = await vesting.getClaimableAmount(
+  //     accounts[4],
+  //     crplayToken.address,
+  //   )
 
-    await vesting.claim(crplayToken.address, { from: accounts[4] })
+  //   await vesting.claim(crplayToken.address, { from: accounts[4] })
 
-    const vestingBalanceNew = await vesting.getTotal(
-      accounts[4],
-      crplayToken.address,
-    )
+  //   const vestingBalanceNew = await vesting.getTotal(
+  //     accounts[4],
+  //     crplayToken.address,
+  //   )
 
-    assert.equal(
-      vestingBalanceNew.toString(),
-      (vestingBalance - vestingClaimBalance).toString(),
-    )
-  })
+  //   assert.equal(
+  //     vestingBalanceNew.toString(),
+  //     (vestingBalance - vestingClaimBalance).toString(),
+  //   )
+  // })
 })

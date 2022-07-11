@@ -50,21 +50,24 @@ module.exports = async function (deployer, network, accounts) {
   order.addContractRole(presale.address, {
     from: accounts[0],
   })
+
   if (network == 'development_test' || network == 'testnet') {
+    await category.create('Metaverse', 'google.com')
+    await category.create('Mobility', 'google.com')
+
     let crplayToken = await CRPLAY.deployed()
     let usdtToken = await USDT.deployed()
-    let total = web3.utils.toWei((16880000000 * 10 ** 10).toString(), 'wei')
+    let total = web3.utils.toWei((13504000000 * 10 ** 10).toString(), 'wei')
+    let totalSend = web3.utils.toWei((16880000000 * 10 ** 10).toString(), 'wei')
     let price = web3.utils.toWei('0.0002135', 'ether')
-
-    let minPerUser = web3.utils.toWei('10', 'wei')
-    let maxPerUser = web3.utils.toWei('1000', 'wei')
-
-    let softCap = web3.utils.toWei('10000', 'wei')
-    let hardCap = web3.utils.toWei('1000000', 'wei')
+    let minPerUser = web3.utils.toWei('10', 'ether')
+    let maxPerUser = web3.utils.toWei('1000', 'ether')
+    let softCap = web3.utils.toWei('10000', 'ether')
+    let hardCap = web3.utils.toWei('1000000', 'ether')
     let finish = 1664675814
     let inital = 1656727014
 
-    await crplayToken.approve(presale.address, total)
+    await crplayToken.approve(presale.address, totalSend)
 
     await presale.addSale({
       total: total,

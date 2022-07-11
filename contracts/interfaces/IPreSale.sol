@@ -45,6 +45,7 @@ interface IPreSale {
         uint256 total;
         uint256 totalSell;
         uint256 balance;
+        uint256 raised;
         uint256 price;
         uint256 finalPrice;
         uint256 discontPrice;
@@ -77,8 +78,6 @@ interface IPreSale {
     function addSale(CreateSale memory createSale) external;
 
     function start(uint256 saleID) external;
-
-    function getPairRouter(uint256 saleID) external view returns (address);
 
     function listOpenSales() external view returns (Sale[] memory sales);
 

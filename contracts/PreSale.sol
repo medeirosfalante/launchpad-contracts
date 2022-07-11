@@ -41,9 +41,14 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     Counters.Counter private _totalSales;
     Counters.Counter private _forwardIds;
 
+    uint256 private factor = 50;
+    uint256 private factorPercent = 5000;
+
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     mapping(uint256 => Sale) private _sales;
     mapping(uint256 => Forward) private _forwardAddresses;
+    mapping(uint256 => mapping(address => uint256)) private _maxPerUsers;
+    mapping(uint256 => mapping(address => bool)) private _activeUser;
 
     string public constant DONT_WAVE_BALANCE_IN_PAYMENT_TOKEN =
         "PreSale: you dont have balance in token";
@@ -57,6 +62,10 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     string public constant SALE_INITIATED = "Sale: initiated";
     string public constant SALE_DONT_INITIATED = "Sale: dont initiated";
     string public constant DONT_HAVE_ACCESS = "Sale: dont have access";
+    string public constant MIN_PER_USER =
+        "Sale: did not reach the mandatory minimum";
+    string public constant MAX_PER_USER =
+        "Sale: you reached the maximum for the sale";
     event AddSale(Sale sale);
     event BuySale(Sale sale);
 
@@ -98,8 +107,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
     {
         address uniswapV2Pair = address(0);
         uint256 totalPercentLiquidPool = 0;
-        uniswapFactory = IUniswapFactory(uniswapV2Router.factory());
+
         if (createSale.createLiquidPool) {
+            uniswapFactory = IUniswapFactory(uniswapV2Router.factory());
             uniswapV2Pair = uniswapFactory.getPair(
                 createSale.token_,
                 createSale.paymentToken_
@@ -112,18 +122,34 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             }
             totalPercentLiquidPool = createSale.totalPercentLiquidPool;
         }
+        IERC20Metadata erc20Token = IERC20Metadata(createSale.token_);
 
         _totalSales.increment();
+        uint256 current = _totalSales.current();
         uint256 totalPercent = 100;
 
-        uint256 current = _totalSales.current();
+        // (5000*50)/10**4
 
-        IERC20Metadata erc20Token = IERC20Metadata(createSale.token_);
+        uint256 totalfactor = factorPercent.sub(
+            createSale.discontPrice.mul(factor)
+        );
+        uint256 totalsend = createSale
+            .total
+            .div(10**(erc20Token.decimals() - 2))
+            .mul(totalfactor);
         require(
-            erc20Token.balanceOf(msg.sender) > createSale.total,
+            erc20Token.balanceOf(msg.sender) >
+                createSale.total.add(
+                    totalsend * 10**(erc20Token.decimals() - 6)
+                ),
             DONT_WAVE_BALANCE_IN_TOKEN
         );
 
+        erc20Token.transferFrom(
+            msg.sender,
+            address(this),
+            totalsend * 10**(erc20Token.decimals() - 6)
+        );
         erc20Token.transferFrom(msg.sender, address(this), createSale.total);
 
         _sales[current] = Sale({
@@ -145,6 +171,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
             creator: msg.sender,
             total: createSale.total,
             totalSell: 0,
+            raised: 0,
             balance: createSale.total,
             price: createSale.price,
             finalPrice: createSale.price.sub(
@@ -186,6 +213,16 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         if (block.timestamp >= sale.endTime) {
             sale.finished = true;
         }
+        if (_activeUser[saleID][msg.sender] == false) {
+            _activeUser[saleID][msg.sender] = true;
+            _maxPerUsers[saleID][msg.sender] = sale.maxPerUser;
+        }
+        require(amountInPaymentToken_ > sale.minPerUser, MIN_PER_USER);
+        require(
+            amountInPaymentToken_ < _maxPerUsers[saleID][msg.sender],
+            MAX_PER_USER
+        );
+
         require(sale.finished == false, SALE_ENDED);
         require(sale.initiated == true, SALE_DONT_INITIATED);
 
@@ -281,6 +318,7 @@ contract PreSale is Pausable, IPreSale, AccessControl {
 
         sale.balance = sale.balance.sub(totalTokenInDolar);
         sale.totalSell = sale.totalSell.add(totalTokenInDolar);
+        sale.raised = sale.raised.add(amountInPaymentToken_);
         _sales[saleID] = sale;
 
         if (sale.hasVesting) {

@@ -1,5 +1,5 @@
 let crplayToken = await CRPLAY.deployed()
-let usdtToken = await USDT.at("0xEA1a8851AdFEB9e941D19FD8e3d398824FC2e147")
+let usdtToken = await USDT.deployed()
 let presale = await PreSale.deployed()
 let category = await CategoryContract.deployed()
 

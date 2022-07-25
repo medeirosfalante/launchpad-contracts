@@ -215,7 +215,9 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         require(_sales[saleID].id > 0, SALE_DONT_EXISTS);
         if (block.timestamp >= sale.endTime) {
             sale.finished = true;
+            _sales[saleID].finished = true;
         }
+
         if (_activeUser[saleID][msg.sender] == false) {
             _activeUser[saleID][msg.sender] = true;
             _maxPerUsers[saleID][msg.sender] = sale.maxPerUser;
@@ -242,12 +244,18 @@ contract PreSale is Pausable, IPreSale, AccessControl {
         sale.finalPrice = sale.price.sub(
             sale.price.div(100).mul(sale.discontPrice)
         );
+        uint256 totalTokenInDolar = amountInPaymentToken_.div(sale.finalPrice);
+        if (sale.balance >= totalTokenInDolar) {
+            sale.finished = true;
+            _sales[saleID].finished = true;
+        }
         erc20Payment.transferFrom(
             msg.sender,
             address(this),
             amountInPaymentToken_
         );
-        uint256 totalTokenInDolar = amountInPaymentToken_.div(sale.finalPrice);
+        
+        require(sale.finished == false, SALE_ENDED);
 
         uint256 totalSendToPool = 0;
 
